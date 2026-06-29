@@ -20,7 +20,7 @@ extern crate std;
 use crate::{
     test_utils,
     types::{SettlementOperation, SettlementState, ShipmentStatus},
-    LumenError, LumenShipment, LumenShipmentClient,
+    OrbitHaulError, LumenShipment, LumenShipmentClient,
 };
 use navin_token::NavinTokenClient;
 use soroban_sdk::{
@@ -402,7 +402,7 @@ fn test_happy_and_failing_token_escrow_and_settlement_flows_are_isolated() {
         .try_deposit_escrow(&company, &id_bad_deposit, &amount)
         .unwrap_err()
         .unwrap();
-    assert_eq!(err, LumenError::TokenTransferFailed);
+    assert_eq!(err, OrbitHaulError::TokenTransferFailed);
     assert_eq!(client_bad.get_escrow_balance(&id_bad_deposit), 0);
 
     let id_bad_release = client_bad.create_shipment(
@@ -424,7 +424,7 @@ fn test_happy_and_failing_token_escrow_and_settlement_flows_are_isolated() {
         .try_confirm_delivery(&receiver, &id_bad_release, &dummy_hash(&env, 105))
         .unwrap_err()
         .unwrap();
-    assert_eq!(err, LumenError::TokenTransferFailed);
+    assert_eq!(err, OrbitHaulError::TokenTransferFailed);
     assert_eq!(
         client_bad.get_shipment(&id_bad_release).status,
         ShipmentStatus::InTransit
@@ -444,7 +444,7 @@ fn test_happy_and_failing_token_escrow_and_settlement_flows_are_isolated() {
         .try_refund_escrow(&company, &id_bad_refund)
         .unwrap_err()
         .unwrap();
-    assert_eq!(err, LumenError::TokenTransferFailed);
+    assert_eq!(err, OrbitHaulError::TokenTransferFailed);
     assert_eq!(
         client_bad.get_shipment(&id_bad_refund).status,
         ShipmentStatus::Created

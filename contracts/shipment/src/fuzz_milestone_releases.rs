@@ -17,7 +17,7 @@
 
 extern crate std;
 
-use crate::{LumenError, LumenShipment, LumenShipmentClient, ShipmentStatus};
+use crate::{OrbitHaulError, LumenShipment, LumenShipmentClient, ShipmentStatus};
 use soroban_sdk::{
     contract, contractimpl, symbol_short,
     testutils::{Address as _, Ledger as _},
@@ -444,14 +444,14 @@ fn fuzz_milestone_order_enforced() {
         // beta before alpha must fail
         assert_eq!(
             client.try_release_milestone_payment(&carrier, &id, &symbol_short!("beta")),
-            Err(Ok(LumenError::InvalidStatus)),
+            Err(Ok(OrbitHaulError::InvalidStatus)),
             "iteration {i}: beta before alpha must be rejected"
         );
 
         // gamma before alpha must fail
         assert_eq!(
             client.try_release_milestone_payment(&carrier, &id, &symbol_short!("gamma")),
-            Err(Ok(LumenError::InvalidStatus)),
+            Err(Ok(OrbitHaulError::InvalidStatus)),
             "iteration {i}: gamma before alpha must be rejected"
         );
 

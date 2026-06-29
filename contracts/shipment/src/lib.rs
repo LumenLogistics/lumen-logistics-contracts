@@ -435,7 +435,7 @@ impl TokenOperation {
 
 /// Validates that the token contract reports the expected number of decimal places (7).
 ///
-/// The Lumen Logistics contract assumes all amounts are expressed in the Stellar standard
+/// The OrbitHaul contract assumes all amounts are expressed in the Stellar standard
 /// unit where 1 token = 10_000_000 stroops (7 decimal places). Tokens returning
 /// a different value from `decimals()` would cause mismatched amount calculations
 /// in escrow operations, so they are rejected early.
@@ -644,10 +644,10 @@ fn require_admin(env: &Env, caller: &Address) -> Result<(), OrbitHaulError> {
 }
 
 #[contract]
-pub struct LumenShipment;
+pub struct OrbitHaulShipment;
 
 #[contractimpl]
-impl LumenShipment {
+impl OrbitHaulShipment {
     /// Set metadata key-value pair for a shipment. Only Company (sender) or Admin can set.
     /// Max 5 metadata entries allowed.
     ///
@@ -952,11 +952,11 @@ impl LumenShipment {
     /// ```rust,no_run
     /// # use soroban_sdk::{Env, Address};
     /// # use soroban_sdk::testutils::Address as _;
-    /// # use shipment::{LumenShipment, LumenShipmentClient};
+    /// # use shipment::{OrbitHaulShipment, OrbitHaulShipmentClient};
     /// # let env = Env::default();
     /// # env.mock_all_auths();
-    /// # let contract_id = env.register(LumenShipment, ());
-    /// # let client = LumenShipmentClient::new(&env, &contract_id);
+    /// # let contract_id = env.register(OrbitHaulShipment, ());
+    /// # let client = OrbitHaulShipmentClient::new(&env, &contract_id);
     /// let admin = Address::generate(&env);
     /// let token_contract = Address::generate(&env); // replace with deployed token address
     ///
@@ -1891,11 +1891,11 @@ impl LumenShipment {
     /// ```rust,no_run
     /// # use soroban_sdk::{Env, Address, BytesN, Vec, Symbol};
     /// # use soroban_sdk::testutils::Address as _;
-    /// # use shipment::{LumenShipment, LumenShipmentClient};
+    /// # use shipment::{OrbitHaulShipment, OrbitHaulShipmentClient};
     /// # let env = Env::default();
     /// # env.mock_all_auths();
-    /// # let contract_id = env.register(LumenShipment, ());
-    /// # let client = LumenShipmentClient::new(&env, &contract_id);
+    /// # let contract_id = env.register(OrbitHaulShipment, ());
+    /// # let client = OrbitHaulShipmentClient::new(&env, &contract_id);
     /// # let admin = Address::generate(&env);
     /// # let token = Address::generate(&env);
     /// # client.initialize(&admin, &token);
@@ -2332,11 +2332,11 @@ impl LumenShipment {
     /// ```rust,no_run
     /// # use soroban_sdk::{Env, Address, BytesN, Vec, Symbol};
     /// # use soroban_sdk::testutils::Address as _;
-    /// # use shipment::{LumenShipment, LumenShipmentClient};
+    /// # use shipment::{OrbitHaulShipment, OrbitHaulShipmentClient};
     /// # let env = Env::default();
     /// # env.mock_all_auths();
-    /// # let contract_id = env.register(LumenShipment, ());
-    /// # let client = LumenShipmentClient::new(&env, &contract_id);
+    /// # let contract_id = env.register(OrbitHaulShipment, ());
+    /// # let client = OrbitHaulShipmentClient::new(&env, &contract_id);
     /// # let admin = Address::generate(&env);
     /// # let token = Address::generate(&env);
     /// # client.initialize(&admin, &token);
@@ -2478,11 +2478,11 @@ impl LumenShipment {
     /// ```rust,no_run
     /// # use soroban_sdk::{Env, Address, BytesN, Vec, Symbol};
     /// # use soroban_sdk::testutils::Address as _;
-    /// # use shipment::{LumenShipment, LumenShipmentClient, ShipmentStatus};
+    /// # use shipment::{OrbitHaulShipment, OrbitHaulShipmentClient, ShipmentStatus};
     /// # let env = Env::default();
     /// # env.mock_all_auths();
-    /// # let contract_id = env.register(LumenShipment, ());
-    /// # let client = LumenShipmentClient::new(&env, &contract_id);
+    /// # let contract_id = env.register(OrbitHaulShipment, ());
+    /// # let client = OrbitHaulShipmentClient::new(&env, &contract_id);
     /// # let admin = Address::generate(&env);
     /// # let token = Address::generate(&env);
     /// # client.initialize(&admin, &token);
@@ -3022,11 +3022,11 @@ impl LumenShipment {
     /// ```rust,no_run
     /// # use soroban_sdk::{Env, Address, BytesN, Vec, Symbol};
     /// # use soroban_sdk::testutils::Address as _;
-    /// # use shipment::{LumenShipment, LumenShipmentClient, ShipmentStatus};
+    /// # use shipment::{OrbitHaulShipment, OrbitHaulShipmentClient, ShipmentStatus};
     /// # let env = Env::default();
     /// # env.mock_all_auths();
-    /// # let contract_id = env.register(LumenShipment, ());
-    /// # let client = LumenShipmentClient::new(&env, &contract_id);
+    /// # let contract_id = env.register(OrbitHaulShipment, ());
+    /// # let client = OrbitHaulShipmentClient::new(&env, &contract_id);
     /// # let admin = Address::generate(&env);
     /// # let token = Address::generate(&env);
     /// # client.initialize(&admin, &token);
@@ -4088,11 +4088,11 @@ impl LumenShipment {
     /// ```rust,no_run
     /// # use soroban_sdk::{Env, Address, BytesN, Vec, Symbol};
     /// # use soroban_sdk::testutils::Address as _;
-    /// # use shipment::{LumenShipment, LumenShipmentClient, ShipmentStatus};
+    /// # use shipment::{OrbitHaulShipment, OrbitHaulShipmentClient, ShipmentStatus};
     /// # let env = Env::default();
     /// # env.mock_all_auths();
-    /// # let contract_id = env.register(LumenShipment, ());
-    /// # let client = LumenShipmentClient::new(&env, &contract_id);
+    /// # let contract_id = env.register(OrbitHaulShipment, ());
+    /// # let client = OrbitHaulShipmentClient::new(&env, &contract_id);
     /// # let admin = Address::generate(&env);
     /// # let token = Address::generate(&env);
     /// # client.initialize(&admin, &token);
@@ -4179,11 +4179,11 @@ impl LumenShipment {
     /// ```rust,no_run
     /// # use soroban_sdk::{Env, Address, BytesN, Vec, Symbol};
     /// # use soroban_sdk::testutils::Address as _;
-    /// # use shipment::{LumenShipment, LumenShipmentClient};
+    /// # use shipment::{OrbitHaulShipment, OrbitHaulShipmentClient};
     /// # let env = Env::default();
     /// # env.mock_all_auths();
-    /// # let contract_id = env.register(LumenShipment, ());
-    /// # let client = LumenShipmentClient::new(&env, &contract_id);
+    /// # let contract_id = env.register(OrbitHaulShipment, ());
+    /// # let client = OrbitHaulShipmentClient::new(&env, &contract_id);
     /// # let admin = Address::generate(&env);
     /// # let token = Address::generate(&env);
     /// # client.initialize(&admin, &token);
@@ -4308,11 +4308,11 @@ impl LumenShipment {
     /// ```rust,no_run
     /// # use soroban_sdk::{Env, Address, BytesN, Vec, Symbol};
     /// # use soroban_sdk::testutils::Address as _;
-    /// # use shipment::{LumenShipment, LumenShipmentClient, ShipmentStatus};
+    /// # use shipment::{OrbitHaulShipment, OrbitHaulShipmentClient, ShipmentStatus};
     /// # let env = Env::default();
     /// # env.mock_all_auths();
-    /// # let contract_id = env.register(LumenShipment, ());
-    /// # let client = LumenShipmentClient::new(&env, &contract_id);
+    /// # let contract_id = env.register(OrbitHaulShipment, ());
+    /// # let client = OrbitHaulShipmentClient::new(&env, &contract_id);
     /// # let admin = Address::generate(&env);
     /// # let token = Address::generate(&env);
     /// # client.initialize(&admin, &token);

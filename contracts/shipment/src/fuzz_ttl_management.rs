@@ -17,7 +17,7 @@
 
 extern crate std;
 
-use crate::{LumenShipment, LumenShipmentClient};
+use crate::{OrbitHaulShipment, OrbitHaulShipmentClient};
 use soroban_sdk::{
     contract, contractimpl,
     testutils::{Address as _, Ledger as _},
@@ -43,10 +43,10 @@ impl TtlFuzzToken {
 // Helpers
 // ─────────────────────────────────────────────────────────────────────────────
 
-fn setup() -> (Env, LumenShipmentClient<'static>, Address) {
+fn setup() -> (Env, OrbitHaulShipmentClient<'static>, Address) {
     let (env, admin) = crate::test_utils::setup_env();
     let token = env.register(TtlFuzzToken {}, ());
-    let client = LumenShipmentClient::new(&env, &env.register(LumenShipment, ()));
+    let client = OrbitHaulShipmentClient::new(&env, &env.register(OrbitHaulShipment, ()));
     client.initialize(&admin, &token);
     client.set_shipment_limit(&admin, &10_000u32);
     (env, client, admin)
@@ -75,7 +75,7 @@ fn hash_from_seed(env: &Env, seed: u64) -> BytesN<32> {
 }
 
 fn create_shipment(
-    client: &LumenShipmentClient,
+    client: &OrbitHaulShipmentClient,
     env: &Env,
     company: &Address,
     carrier: &Address,

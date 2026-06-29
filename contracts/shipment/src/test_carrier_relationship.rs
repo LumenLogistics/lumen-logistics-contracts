@@ -5,7 +5,7 @@
 
 #[cfg(test)]
 mod tests {
-    use crate::{test_utils, LumenShipment, LumenShipmentClient};
+    use crate::{test_utils, OrbitHaulShipment, OrbitHaulShipmentClient};
     use soroban_sdk::{contract, contractimpl, testutils::Address as _, Address, Env, Vec};
 
     #[contract]
@@ -20,10 +20,10 @@ mod tests {
         }
     }
 
-    fn setup() -> (Env, LumenShipmentClient<'static>, Address) {
+    fn setup() -> (Env, OrbitHaulShipmentClient<'static>, Address) {
         let (env, admin) = test_utils::setup_env();
-        let contract_id = env.register(LumenShipment, ());
-        let client = LumenShipmentClient::new(&env, &contract_id);
+        let contract_id = env.register(OrbitHaulShipment, ());
+        let client = OrbitHaulShipmentClient::new(&env, &contract_id);
         let token_id = env.register(MockToken, ());
         client.initialize(&admin, &token_id);
         (env, client, admin)
@@ -31,7 +31,7 @@ mod tests {
 
     fn add_company_and_carrier(
         env: &Env,
-        client: &LumenShipmentClient,
+        client: &OrbitHaulShipmentClient,
         admin: &Address,
     ) -> (Address, Address) {
         let company = Address::generate(env);

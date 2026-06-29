@@ -1,6 +1,6 @@
 # Lumen Logistics - Decentralized Delivery Tracking Platform
 
-[![CI](https://github.com/LumenLogistics/lumen-logistics-contracts/actions/workflows/test.yml/badge.svg)](https://github.com/LumenLogistics/lumen-logistics-contracts/actions)
+[![CI](https://github.com/OrbitHaul/Orbit-Haul-contracts/actions/workflows/test.yml/badge.svg)](https://github.com/OrbitHaul/Orbit-Haul-contracts/actions)
 
 **Lumen Logistics** is a decentralized delivery tracking platform built on the Stellar blockchain. It empowers corporations and logistics companies to track foodstuff and other deliverable items in real-time with complete transparency and security.
 
@@ -63,8 +63,8 @@ This repository contains Soroban smart contracts for the Lumen Logistics platfor
 ```bash
 # Fork the repository
 # Then clone your fork into your local environment
-git clone https://github.com/LumenLogistics/lumen-logistics-contracts.git
-cd lumen-logistics-contracts
+git clone https://github.com/OrbitHaul/Orbit-Haul-contracts.git
+cd Orbit-Haul-contracts
 
 # Add wasm32 target
 rustup target add wasm32-unknown-unknown
@@ -217,7 +217,7 @@ We welcome contributions! Please see our [CONTRIBUTING.md](CONTRIBUTING.md) for 
 
 ## Security
 
-Security is paramount for Lumen Logistics. If you discover a security vulnerability, please email <security@lumenlogistics.io> instead of using the issue tracker.
+Security is paramount for Lumen Logistics. If you discover a security vulnerability, please email <security@orbithaul.io> instead of using the issue tracker.
 
 ## Resources
 
@@ -227,8 +227,8 @@ Security is paramount for Lumen Logistics. If you discover a security vulnerabil
 
 ## Community
 
-- [Twitter](https://twitter.com/lumenlogistics)
-- [Telegram Group Chat](https://t.me/lumenlogistics)
+- [Twitter](https://twitter.com/orbithaul)
+- [Telegram Group Chat](https://t.me/orbithaul)
 
 ---
 

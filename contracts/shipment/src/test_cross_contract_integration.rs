@@ -78,7 +78,7 @@ mod mock_fail {
 use crate::{
     test_utils,
     types::{SettlementOperation, SettlementState, ShipmentInput},
-    LumenError, LumenShipment, LumenShipmentClient, ShipmentStatus,
+    OrbitHaulError, LumenShipment, LumenShipmentClient, ShipmentStatus,
 };
 use soroban_sdk::{
     testutils::{Address as _, Events as _},
@@ -335,7 +335,7 @@ fn test_rejected_handoff_when_caller_not_current_carrier() {
         Ok(Err(e)) => {
             // Success: contract returned error
             let expected_error =
-                soroban_sdk::Error::from_contract_error(LumenError::Unauthorized as u32);
+                soroban_sdk::Error::from_contract_error(OrbitHaulError::Unauthorized as u32);
             let err_str = std::format!("{:?}", e);
             let expected_str = std::format!("{:?}", expected_error);
             assert!(
@@ -403,7 +403,7 @@ fn test_token_transfer_failure_returns_correct_error() {
         .try_release_escrow(&receiver, &id)
         .unwrap_err()
         .unwrap();
-    assert_eq!(err, LumenError::TokenTransferFailed);
+    assert_eq!(err, OrbitHaulError::TokenTransferFailed);
 }
 
 #[test]
@@ -458,7 +458,7 @@ fn test_happy_and_failing_token_flows_can_run_together() {
         .try_deposit_escrow(&fail_ctx.company, &fail_deposit_id, &500)
         .unwrap_err()
         .unwrap();
-    assert_eq!(err, LumenError::TokenTransferFailed);
+    assert_eq!(err, OrbitHaulError::TokenTransferFailed);
     assert_eq!(fail_ctx.client.get_escrow_balance(&fail_deposit_id), 0);
 
     let fail_release_id = fail_ctx.client.create_shipment(
@@ -476,7 +476,7 @@ fn test_happy_and_failing_token_flows_can_run_together() {
         .try_release_escrow(&receiver_fail, &fail_release_id)
         .unwrap_err()
         .unwrap();
-    assert_eq!(err, LumenError::TokenTransferFailed);
+    assert_eq!(err, OrbitHaulError::TokenTransferFailed);
     assert_eq!(fail_ctx.client.get_escrow_balance(&fail_release_id), 500);
 
     let fail_refund_id = fail_ctx.client.create_shipment(
@@ -493,7 +493,7 @@ fn test_happy_and_failing_token_flows_can_run_together() {
         .try_refund_escrow(&fail_ctx.company, &fail_refund_id)
         .unwrap_err()
         .unwrap();
-    assert_eq!(err, LumenError::TokenTransferFailed);
+    assert_eq!(err, OrbitHaulError::TokenTransferFailed);
     assert_eq!(fail_ctx.client.get_escrow_balance(&fail_refund_id), 250);
     assert_eq!(fail_ctx.client.get_settlement_count(), 0);
 }
@@ -538,7 +538,7 @@ fn test_circuit_breaker_opens_after_repeated_failures() {
         .try_release_escrow(&receiver, &id)
         .unwrap_err()
         .unwrap();
-    assert_eq!(err, LumenError::CircuitBreakerOpen);
+    assert_eq!(err, OrbitHaulError::CircuitBreakerOpen);
 }
 
 #[test]
@@ -714,7 +714,7 @@ fn test_token_failure_maps_to_transfer_failed_error_code() {
         .unwrap();
     assert_eq!(
         err,
-        LumenError::TokenTransferFailed,
+        OrbitHaulError::TokenTransferFailed,
         "token transfer failure must surface as TokenTransferFailed"
     );
 }

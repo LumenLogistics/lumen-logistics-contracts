@@ -226,7 +226,7 @@ fn test_suspension_with_rate_limit_exhaustion() {
     assert!(result.is_err());
     // Should be CompanySuspended (error code 37), not RateLimitExceeded
     let err = result.unwrap_err().unwrap();
-    assert_eq!(err, crate::LumenError::CompanySuspended);
+    assert_eq!(err, crate::OrbitHaulError::CompanySuspended);
 }
 
 /// Test: Recovery after suspension when rate limit window is active.

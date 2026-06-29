@@ -275,7 +275,7 @@ mod tests {
         let update_result =
             client.try_update_status(&carrier, &shipment_id, &ShipmentStatus::InTransit, &hash);
         assert!(
-            matches!(update_result, Err(Ok(crate::LumenError::ShipmentFinalized))),
+            matches!(update_result, Err(Ok(crate::OrbitHaulError::ShipmentFinalized))),
             "update_status must still be rejected after pause/unpause cycle"
         );
 
@@ -283,7 +283,7 @@ mod tests {
         assert!(
             matches!(
                 deposit_result,
-                Err(Ok(crate::LumenError::ShipmentFinalized))
+                Err(Ok(crate::OrbitHaulError::ShipmentFinalized))
             ),
             "deposit_escrow must still be rejected after pause/unpause cycle"
         );
@@ -563,7 +563,7 @@ mod tests {
         // Should fail with ContractPaused, not CircuitBreakerOpen
         assert!(result.is_err());
         let err = result.unwrap_err().unwrap();
-        assert_eq!(err, crate::LumenError::ContractPaused);
+        assert_eq!(err, crate::OrbitHaulError::ContractPaused);
     }
 
     /// Test: Circuit breaker state persists across pause/unpause cycles.

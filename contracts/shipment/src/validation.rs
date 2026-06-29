@@ -549,7 +549,7 @@ mod tests {
     fn test_validate_shipment_exists_missing_returns_error() {
         let env = Env::default();
         // Storage access requires a contract context in Soroban.
-        let result = env.as_contract(&env.register(crate::LumenShipment, ()), || {
+        let result = env.as_contract(&env.register(crate::OrbitHaulShipment, ()), || {
             validate_shipment_exists(&env, 999)
         });
         assert!(matches!(result, Err(OrbitHaulError::ShipmentNotFound)));

@@ -33,7 +33,7 @@
 
 extern crate std;
 
-use crate::{LumenShipment, LumenShipmentClient, ShipmentStatus};
+use crate::{OrbitHaulShipment, OrbitHaulShipmentClient, ShipmentStatus};
 use soroban_sdk::{
     contract, contractimpl, testutils::Address as _, Address, BytesN, Env, Symbol,
     Vec as SorobanVec,
@@ -62,12 +62,12 @@ impl MockToken {
 /// `Env::default()` starts with the budget meter active; we just need to
 /// call `reset_unlimited()` on the env before each operation under test so
 /// that setup work is not counted.
-fn setup_env() -> (Env, LumenShipmentClient<'static>, Address, Address) {
+fn setup_env() -> (Env, OrbitHaulShipmentClient<'static>, Address, Address) {
     let env = Env::default();
     env.mock_all_auths();
     let admin = Address::generate(&env);
     let token_contract = env.register(MockToken {}, ());
-    let client = LumenShipmentClient::new(&env, &env.register(LumenShipment, ()));
+    let client = OrbitHaulShipmentClient::new(&env, &env.register(OrbitHaulShipment, ()));
     (env, client, admin, token_contract)
 }
 

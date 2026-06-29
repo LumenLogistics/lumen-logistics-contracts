@@ -479,10 +479,10 @@ fn test_valid_and_invalid_transitions_guard_boundary() {
     // Invalid transition
     let err = validate_shipment_transition(&ShipmentStatus::Created, &ShipmentStatus::Delivered)
         .unwrap_err();
-    assert_eq!(err, crate::LumenError::InvalidStatus);
+    assert_eq!(err, crate::OrbitHaulError::InvalidStatus);
 
     // Terminal state transition (should be invalid)
     let err = validate_shipment_transition(&ShipmentStatus::Delivered, &ShipmentStatus::InTransit)
         .unwrap_err();
-    assert_eq!(err, crate::LumenError::InvalidStatus);
+    assert_eq!(err, crate::OrbitHaulError::InvalidStatus);
 }

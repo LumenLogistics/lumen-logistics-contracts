@@ -3,7 +3,7 @@
 /// This module ensures that zero-amount and negative-amount escrow operations
 /// are rejected consistently across all escrow call paths, preventing silent
 /// acceptance of invalid amounts and maintaining bounded, predictable behavior.
-use crate::{LumenError, LumenShipment, LumenShipmentClient, ShipmentStatus};
+use crate::{OrbitHaulError, LumenShipment, LumenShipmentClient, ShipmentStatus};
 use soroban_sdk::{testutils::Address as _, Address, BytesN, Env, Vec};
 
 #[soroban_sdk::contract]
@@ -65,7 +65,7 @@ fn test_deposit_escrow_zero_amount_rejected() {
 
     // Attempt to deposit zero amount - should fail
     let result = client.try_deposit_escrow(&company, &shipment_id, &0);
-    assert_eq!(result, Err(Ok(LumenError::InsufficientFunds)));
+    assert_eq!(result, Err(Ok(OrbitHaulError::InsufficientFunds)));
 }
 
 /// Test that deposit_escrow with negative amount is rejected.
@@ -86,7 +86,7 @@ fn test_deposit_escrow_negative_amount_rejected() {
 
     // Attempt to deposit negative amount - should fail
     let result = client.try_deposit_escrow(&company, &shipment_id, &-100);
-    assert_eq!(result, Err(Ok(LumenError::InsufficientFunds)));
+    assert_eq!(result, Err(Ok(OrbitHaulError::InsufficientFunds)));
 }
 
 /// Test that positive amounts are accepted in deposit_escrow.
@@ -135,7 +135,7 @@ fn test_deposit_escrow_zero_rejection_consistency() {
     // Multiple attempts with zero - all should fail consistently
     for _ in 0..3 {
         let result = client.try_deposit_escrow(&company, &shipment_id, &0);
-        assert_eq!(result, Err(Ok(LumenError::InsufficientFunds)));
+        assert_eq!(result, Err(Ok(OrbitHaulError::InsufficientFunds)));
     }
 }
 
@@ -193,8 +193,8 @@ fn test_zero_amount_rejection_multiple_shipments() {
     let result_1 = client.try_deposit_escrow(&company, &shipment_1, &0);
     let result_2 = client.try_deposit_escrow(&company, &shipment_2, &0);
 
-    assert_eq!(result_1, Err(Ok(LumenError::InsufficientFunds)));
-    assert_eq!(result_2, Err(Ok(LumenError::InsufficientFunds)));
+    assert_eq!(result_1, Err(Ok(OrbitHaulError::InsufficientFunds)));
+    assert_eq!(result_2, Err(Ok(OrbitHaulError::InsufficientFunds)));
 }
 
 /// Test that release_escrow rejects zero-amount escrow even after shipment delivery.

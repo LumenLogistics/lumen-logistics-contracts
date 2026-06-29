@@ -442,6 +442,9 @@ mod tests {
             deadline: 200,
             integration_nonce: 0,
             finalized: false,
+            priority: crate::types::ShipmentPriority::Standard,
+            sla_seconds: None,
+            iot_reading_count: 0,
         };
 
         assert_eq!(validate_shipment_invariants(&shipment), Ok(()));
@@ -468,6 +471,9 @@ mod tests {
             deadline: 200,
             integration_nonce: 0,
             finalized: false,
+            priority: crate::types::ShipmentPriority::Standard,
+            sla_seconds: None,
+            iot_reading_count: 0,
         };
 
         assert_eq!(

@@ -520,20 +520,15 @@ pub enum GeofenceEvent {
 
 /// Priority level of a shipment, affecting SLA enforcement and event routing.
 #[contracttype]
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Default)]
 pub enum ShipmentPriority {
     /// Standard delivery with no special handling (default).
+    #[default]
     Standard,
     /// Expedited handling; SLA breach triggers automatic alert events.
     Express,
     /// Mission-critical cargo; SLA breach triggers automatic dispute escalation.
     Critical,
-}
-
-impl Default for ShipmentPriority {
-    fn default() -> Self {
-        ShipmentPriority::Standard
-    }
 }
 
 /// A single IoT sensor reading submitted on-chain via hash-and-emit.

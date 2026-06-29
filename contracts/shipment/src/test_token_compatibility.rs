@@ -4,7 +4,7 @@
 //! Stellar Asset Contract (SAC) tokens and custom token contracts (NavinToken).
 #![allow(deprecated)]
 
-use crate::{test_utils, types::ShipmentStatus, LumenError, LumenShipment, LumenShipmentClient};
+use crate::{test_utils, types::ShipmentStatus, OrbitHaulError, LumenShipment, LumenShipmentClient};
 use soroban_sdk::{testutils::Address as _, Address, BytesN, Env, IntoVal, Vec};
 
 // Import custom token client
@@ -298,7 +298,7 @@ fn run_insufficient_funds_test(variant: TokenVariant) {
 
     assert!(result.is_err());
     let err = result.unwrap_err().unwrap();
-    assert_eq!(err, LumenError::TokenTransferFailed);
+    assert_eq!(err, OrbitHaulError::TokenTransferFailed);
 }
 
 // ── Behavioral Assumptions ──────────────────────────────────────────────────
@@ -312,7 +312,7 @@ fn run_insufficient_funds_test(variant: TokenVariant) {
 //
 // 3. Error Mapping: Any failure in the token's transfer method (due to
 //    insufficient balance, frozen accounts, etc.) is captured by the shipment
-//    contract and returned as LumenError::TokenTransferFailed.
+//    contract and returned as OrbitHaulError::TokenTransferFailed.
 //
 // 4. Escrow Custody: The shipment contract acts as the custodian of escrowed tokens.
 //    It must have been authorized (via approve or being the target of transfer)
@@ -415,7 +415,7 @@ fn test_token_with_6_decimals_deposit_fails_with_invalid_token_decimals() {
     let result = client.try_deposit_escrow(&company, &shipment_id, &500i128);
     assert_eq!(
         result,
-        Err(Ok(LumenError::InvalidTokenDecimals)),
+        Err(Ok(OrbitHaulError::InvalidTokenDecimals)),
         "Token with 6 decimals must be rejected with InvalidTokenDecimals"
     );
 }
@@ -449,7 +449,7 @@ fn test_token_with_8_decimals_deposit_fails_with_invalid_token_decimals() {
     let result = client.try_deposit_escrow(&company, &shipment_id, &500i128);
     assert_eq!(
         result,
-        Err(Ok(LumenError::InvalidTokenDecimals)),
+        Err(Ok(OrbitHaulError::InvalidTokenDecimals)),
         "Token with 8 decimals must be rejected with InvalidTokenDecimals"
     );
 }

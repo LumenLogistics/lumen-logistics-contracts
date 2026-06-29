@@ -7,7 +7,7 @@
 
 #![cfg(test)]
 
-use crate::{OrbitHaulError, LumenShipment, LumenShipmentClient, ShipmentStatus};
+use crate::{LumenShipment, LumenShipmentClient, OrbitHaulError, ShipmentStatus};
 use soroban_sdk::testutils::Address as _;
 use soroban_sdk::{contract, contractimpl, symbol_short, Address, BytesN, Env, Symbol, Vec};
 
@@ -347,5 +347,8 @@ fn test_validation_rejects_zero_percentage_milestone() {
         &deadline,
     );
 
-    assert_eq!(result, Err(Ok(crate::errors::OrbitHaulError::InvalidConfig)));
+    assert_eq!(
+        result,
+        Err(Ok(crate::errors::OrbitHaulError::InvalidConfig))
+    );
 }

@@ -9,7 +9,7 @@
 #[cfg(test)]
 mod tests {
     extern crate std;
-    use crate::{test_utils, OrbitHaulError, LumenShipment, LumenShipmentClient, ShipmentStatus};
+    use crate::{test_utils, LumenShipment, LumenShipmentClient, OrbitHaulError, ShipmentStatus};
     use soroban_sdk::{contract, contractimpl, testutils::Address as _, Address, BytesN, Env, Vec};
 
     #[contract]
@@ -225,8 +225,9 @@ mod tests {
         let result = client.try_archive_shipment(&admin, &shipment_id);
         match result {
             Ok(Err(e)) => {
-                let expected_error =
-                    soroban_sdk::Error::from_contract_error(OrbitHaulError::ShipmentNotFound as u32);
+                let expected_error = soroban_sdk::Error::from_contract_error(
+                    OrbitHaulError::ShipmentNotFound as u32,
+                );
                 let err_str = std::format!("{:?}", e);
                 let expected_str = std::format!("{:?}", expected_error);
                 assert!(

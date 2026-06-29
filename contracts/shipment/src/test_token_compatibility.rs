@@ -4,7 +4,9 @@
 //! Stellar Asset Contract (SAC) tokens and custom token contracts (NavinToken).
 #![allow(deprecated)]
 
-use crate::{test_utils, types::ShipmentStatus, OrbitHaulError, LumenShipment, LumenShipmentClient};
+use crate::{
+    test_utils, types::ShipmentStatus, LumenShipment, LumenShipmentClient, OrbitHaulError,
+};
 use soroban_sdk::{testutils::Address as _, Address, BytesN, Env, IntoVal, Vec};
 
 // Import custom token client
@@ -459,8 +461,7 @@ fn test_get_expected_token_decimals_matches_setting() {
     let ctx = setup_test(TokenVariant::StellarAsset);
     let decimals = ctx.shipment_client.get_expected_token_decimals();
     assert_eq!(
-        decimals,
-        7,
+        decimals, 7,
         "get_expected_token_decimals must return 7 decimals"
     );
 }

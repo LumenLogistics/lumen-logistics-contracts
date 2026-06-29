@@ -8,7 +8,7 @@
 
 #[cfg(test)]
 mod tests {
-    use crate::{test_utils, OrbitHaulError, LumenShipment, LumenShipmentClient, ShipmentStatus};
+    use crate::{test_utils, LumenShipment, LumenShipmentClient, OrbitHaulError, ShipmentStatus};
     use soroban_sdk::{contract, contractimpl, testutils::Address as _, Address, BytesN, Env, Vec};
 
     #[contract]

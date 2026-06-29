@@ -1,5 +1,5 @@
 use crate::{
-    test_utils, types::ShipmentInput, OrbitHaulError, LumenShipment, LumenShipmentClient,
+    test_utils, types::ShipmentInput, LumenShipment, LumenShipmentClient, OrbitHaulError,
     ShipmentStatus,
 };
 use soroban_sdk::{

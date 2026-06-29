@@ -3,7 +3,7 @@
 /// This module ensures that zero-amount and negative-amount escrow operations
 /// are rejected consistently across all escrow call paths, preventing silent
 /// acceptance of invalid amounts and maintaining bounded, predictable behavior.
-use crate::{OrbitHaulError, LumenShipment, LumenShipmentClient, ShipmentStatus};
+use crate::{LumenShipment, LumenShipmentClient, OrbitHaulError, ShipmentStatus};
 use soroban_sdk::{testutils::Address as _, Address, BytesN, Env, Vec};
 
 #[soroban_sdk::contract]

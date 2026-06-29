@@ -3,7 +3,7 @@
 extern crate std;
 
 use crate::{
-    types::DataKey, BreachType, GeofenceEvent, OrbitHaulError, LumenShipment, LumenShipmentClient,
+    types::DataKey, BreachType, GeofenceEvent, LumenShipment, LumenShipmentClient, OrbitHaulError,
     PersistentRestoreDiagnostics, Severity, ShipmentInput, ShipmentStatus, StoragePresenceState,
 };
 use soroban_sdk::{
@@ -3560,7 +3560,10 @@ fn test_milestone_payment_duplicate_record_no_double_pay() {
     // Record Milestone 1 AGAIN — must be rejected to prevent double-pay
     let dup_result =
         client.try_record_milestone(&carrier, &shipment_id, &Symbol::new(&env, "m1"), &data_hash);
-    assert_eq!(dup_result, Err(Ok(crate::OrbitHaulError::MilestoneAlreadyPaid)));
+    assert_eq!(
+        dup_result,
+        Err(Ok(crate::OrbitHaulError::MilestoneAlreadyPaid))
+    );
     // Escrow must still be 500 — no double payment
     assert_eq!(client.get_shipment(&shipment_id).escrow_amount, 500);
 }
@@ -5360,7 +5363,10 @@ fn test_delivery_before_deadline() {
 
     // Attempting to crank check_deadline on a safely completed shipment errors appropriately (Error 9)
     let res = client.try_check_deadline(&shipment_id);
-    assert_eq!(res, Err(Ok(crate::OrbitHaulError::ShipmentAlreadyCompleted)));
+    assert_eq!(
+        res,
+        Err(Ok(crate::OrbitHaulError::ShipmentAlreadyCompleted))
+    );
 }
 
 #[test]
@@ -6552,7 +6558,10 @@ fn test_resolve_dispute_fails_without_reason_hash() {
         &crate::DisputeResolution::ReleaseToCarrier,
         &empty_hash,
     );
-    assert_eq!(res, Err(Ok(crate::OrbitHaulError::DisputeReasonHashMissing)));
+    assert_eq!(
+        res,
+        Err(Ok(crate::OrbitHaulError::DisputeReasonHashMissing))
+    );
 }
 
 #[test]

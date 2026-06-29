@@ -2094,14 +2094,23 @@ pub fn increment_iot_reading_count(env: &Env, shipment_id: u64) -> u32 {
 }
 
 /// Store an IoT data point at a specific index for a shipment.
-pub fn set_iot_reading(env: &Env, shipment_id: u64, index: u32, reading: &crate::types::IoTDataPoint) {
+pub fn set_iot_reading(
+    env: &Env,
+    shipment_id: u64,
+    index: u32,
+    reading: &crate::types::IoTDataPoint,
+) {
     env.storage()
         .persistent()
         .set(&DataKey::IoTReading(shipment_id, index), reading);
 }
 
 /// Retrieve an IoT data point by shipment and index.
-pub fn get_iot_reading(env: &Env, shipment_id: u64, index: u32) -> Option<crate::types::IoTDataPoint> {
+pub fn get_iot_reading(
+    env: &Env,
+    shipment_id: u64,
+    index: u32,
+) -> Option<crate::types::IoTDataPoint> {
     env.storage()
         .persistent()
         .get(&DataKey::IoTReading(shipment_id, index))

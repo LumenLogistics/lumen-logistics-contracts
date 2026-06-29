@@ -79,6 +79,8 @@ mod test_precondition_guards;
 #[cfg(test)]
 mod test_proposal_digest;
 #[cfg(test)]
+mod test_replay_protection;
+#[cfg(test)]
 mod test_require_auth_for_args;
 #[cfg(test)]
 mod test_settlement;
@@ -104,8 +106,6 @@ mod test_verification;
 mod test_whitelist_multicompany;
 #[cfg(test)]
 mod test_zero_amount_escrow;
-#[cfg(test)]
-mod test_replay_protection;
 
 // ── Fuzz / property-based test harnesses ─────────────────────────────────────
 #[cfg(test)]
@@ -237,7 +237,8 @@ fn internal_release_escrow(
 
     if actual_release > 0 {
         // Get token contract address
-        let token_contract = storage::get_token_contract(env).ok_or(OrbitHaulError::NotInitialized)?;
+        let token_contract =
+            storage::get_token_contract(env).ok_or(OrbitHaulError::NotInitialized)?;
         let contract_address = env.current_contract_address();
 
         // Create settlement record in Pending state
@@ -351,7 +352,11 @@ fn create_settlement(
 }
 
 /// Mark a settlement as completed.
-fn complete_settlement(env: &Env, settlement_id: u64, shipment_id: u64) -> Result<(), OrbitHaulError> {
+fn complete_settlement(
+    env: &Env,
+    settlement_id: u64,
+    shipment_id: u64,
+) -> Result<(), OrbitHaulError> {
     let mut settlement =
         storage::get_settlement(env, settlement_id).ok_or(OrbitHaulError::ShipmentNotFound)?; // Reusing error for simplicity
     settlement.state = SettlementState::Completed;
@@ -962,7 +967,11 @@ impl OrbitHaulShipment {
     ///
     /// client.initialize(&admin, &token_contract);
     /// ```
-    pub fn initialize(env: Env, admin: Address, token_contract: Address) -> Result<(), OrbitHaulError> {
+    pub fn initialize(
+        env: Env,
+        admin: Address,
+        token_contract: Address,
+    ) -> Result<(), OrbitHaulError> {
         if storage::is_initialized(&env) {
             return Err(OrbitHaulError::AlreadyInitialized);
         }
@@ -1609,7 +1618,11 @@ impl OrbitHaulShipment {
     /// Suspend a carrier from carrier-only operations.
     ///
     /// Only the admin can call this function.
-    pub fn suspend_carrier(env: Env, admin: Address, carrier: Address) -> Result<(), OrbitHaulError> {
+    pub fn suspend_carrier(
+        env: Env,
+        admin: Address,
+        carrier: Address,
+    ) -> Result<(), OrbitHaulError> {
         require_initialized(&env)?;
         require_not_paused(&env)?;
         admin.require_auth();
@@ -1782,7 +1795,11 @@ impl OrbitHaulShipment {
     /// ```rust
     /// // contract.reactivate_role(&env, &admin, &target_addr);
     /// ```
-    pub fn reactivate_role(env: Env, admin: Address, target: Address) -> Result<(), OrbitHaulError> {
+    pub fn reactivate_role(
+        env: Env,
+        admin: Address,
+        target: Address,
+    ) -> Result<(), OrbitHaulError> {
         require_initialized(&env)?;
         require_not_paused(&env)?;
         admin.require_auth();
@@ -1813,7 +1830,11 @@ impl OrbitHaulShipment {
     }
 
     /// Suspend a company from creating or updating shipments.
-    pub fn suspend_company(env: Env, admin: Address, company: Address) -> Result<(), OrbitHaulError> {
+    pub fn suspend_company(
+        env: Env,
+        admin: Address,
+        company: Address,
+    ) -> Result<(), OrbitHaulError> {
         require_initialized(&env)?;
         require_not_paused(&env)?;
         admin.require_auth();
@@ -2652,7 +2673,10 @@ impl OrbitHaulShipment {
     /// ```rust
     /// // let settlement = contract.get_settlement(&env, 1);
     /// ```
-    pub fn get_settlement(env: Env, settlement_id: u64) -> Result<SettlementRecord, OrbitHaulError> {
+    pub fn get_settlement(
+        env: Env,
+        settlement_id: u64,
+    ) -> Result<SettlementRecord, OrbitHaulError> {
         require_initialized(&env)?;
         storage::get_settlement(&env, settlement_id).ok_or(OrbitHaulError::ShipmentNotFound)
     }
@@ -2673,7 +2697,10 @@ impl OrbitHaulShipment {
     /// ```rust
     /// // let active_id = contract.get_active_settlement(&env, 1);
     /// ```
-    pub fn get_active_settlement(env: Env, shipment_id: u64) -> Result<Option<u64>, OrbitHaulError> {
+    pub fn get_active_settlement(
+        env: Env,
+        shipment_id: u64,
+    ) -> Result<Option<u64>, OrbitHaulError> {
         require_initialized(&env)?;
         Ok(storage::get_active_settlement(&env, shipment_id))
     }
@@ -2968,7 +2995,11 @@ impl OrbitHaulShipment {
     /// ```rust
     /// // contract.archive_shipment(&env, &admin, 1);
     /// ```
-    pub fn archive_shipment(env: Env, admin: Address, shipment_id: u64) -> Result<(), OrbitHaulError> {
+    pub fn archive_shipment(
+        env: Env,
+        admin: Address,
+        shipment_id: u64,
+    ) -> Result<(), OrbitHaulError> {
         require_initialized(&env)?;
         admin.require_auth();
 
@@ -4046,7 +4077,10 @@ impl OrbitHaulShipment {
     ///
     /// # Returns
     /// * `Result<MigrationReport, OrbitHaulError>` - Summary of the migration impact.
-    pub fn dry_run_migration(env: Env, target_version: u32) -> Result<MigrationReport, OrbitHaulError> {
+    pub fn dry_run_migration(
+        env: Env,
+        target_version: u32,
+    ) -> Result<MigrationReport, OrbitHaulError> {
         require_initialized(&env)?;
 
         let current_version = storage::get_version(&env);
@@ -4109,7 +4143,11 @@ impl OrbitHaulShipment {
     /// // Manually release any remaining escrow to the carrier after delivery is confirmed.
     /// client.release_escrow(&receiver, &shipment_id);
     /// ```
-    pub fn release_escrow(env: Env, caller: Address, shipment_id: u64) -> Result<(), OrbitHaulError> {
+    pub fn release_escrow(
+        env: Env,
+        caller: Address,
+        shipment_id: u64,
+    ) -> Result<(), OrbitHaulError> {
         require_initialized(&env)?;
         caller.require_auth();
 
@@ -4198,7 +4236,11 @@ impl OrbitHaulShipment {
     /// // Refund escrow back to the company when the shipment is in Created or Cancelled state.
     /// client.refund_escrow(&admin, &shipment_id);
     /// ```
-    pub fn refund_escrow(env: Env, caller: Address, shipment_id: u64) -> Result<(), OrbitHaulError> {
+    pub fn refund_escrow(
+        env: Env,
+        caller: Address,
+        shipment_id: u64,
+    ) -> Result<(), OrbitHaulError> {
         require_initialized(&env)?;
         caller.require_auth();
 
@@ -4488,7 +4530,8 @@ impl OrbitHaulShipment {
         };
 
         // Transfer tokens from this contract to recipient
-        let token_contract = storage::get_token_contract(&env).ok_or(OrbitHaulError::NotInitialized)?;
+        let token_contract =
+            storage::get_token_contract(&env).ok_or(OrbitHaulError::NotInitialized)?;
         let contract_address = env.current_contract_address();
 
         // Create settlement record in Pending state
@@ -4819,7 +4862,11 @@ impl OrbitHaulShipment {
     /// * `env` - Execution environment.
     /// * `admin` - Current administrator address.
     /// * `new_admin` - Address proposed as the new administrator.
-    pub fn transfer_admin(env: Env, admin: Address, new_admin: Address) -> Result<(), OrbitHaulError> {
+    pub fn transfer_admin(
+        env: Env,
+        admin: Address,
+        new_admin: Address,
+    ) -> Result<(), OrbitHaulError> {
         require_initialized(&env)?;
         admin.require_auth();
 
@@ -5023,7 +5070,11 @@ impl OrbitHaulShipment {
     /// ```rust
     /// // contract.approve_action(&env, &admin2, 1);
     /// ```
-    pub fn approve_action(env: Env, approver: Address, proposal_id: u64) -> Result<(), OrbitHaulError> {
+    pub fn approve_action(
+        env: Env,
+        approver: Address,
+        proposal_id: u64,
+    ) -> Result<(), OrbitHaulError> {
         require_initialized(&env)?;
         approver.require_auth();
 
@@ -5142,8 +5193,8 @@ impl OrbitHaulShipment {
                 events::emit_admin_transferred(&env, &old_admin, &new_admin);
             }
             crate::types::AdminAction::ForceRelease(shipment_id) => {
-                let mut shipment =
-                    storage::get_shipment(&env, shipment_id).ok_or(OrbitHaulError::ShipmentNotFound)?;
+                let mut shipment = storage::get_shipment(&env, shipment_id)
+                    .ok_or(OrbitHaulError::ShipmentNotFound)?;
 
                 let escrow_amount = shipment.escrow_amount;
                 if escrow_amount > 0 {
@@ -5174,8 +5225,8 @@ impl OrbitHaulShipment {
                 }
             }
             crate::types::AdminAction::ForceRefund(shipment_id) => {
-                let mut shipment =
-                    storage::get_shipment(&env, shipment_id).ok_or(OrbitHaulError::ShipmentNotFound)?;
+                let mut shipment = storage::get_shipment(&env, shipment_id)
+                    .ok_or(OrbitHaulError::ShipmentNotFound)?;
 
                 let escrow_amount = shipment.escrow_amount;
                 if escrow_amount > 0 {
@@ -5230,7 +5281,10 @@ impl OrbitHaulShipment {
     /// ```rust
     /// // let proposal = contract.get_proposal(&env, 1);
     /// ```
-    pub fn get_proposal(env: Env, proposal_id: u64) -> Result<crate::types::Proposal, OrbitHaulError> {
+    pub fn get_proposal(
+        env: Env,
+        proposal_id: u64,
+    ) -> Result<crate::types::Proposal, OrbitHaulError> {
         require_initialized(&env)?;
         storage::get_proposal(&env, proposal_id).ok_or(OrbitHaulError::ProposalNotFound)
     }
@@ -5250,7 +5304,9 @@ impl OrbitHaulShipment {
     /// ```rust
     /// // let (admins, threshold) = contract.get_multisig_config(&env);
     /// ```
-    pub fn get_multisig_config(env: Env) -> Result<(soroban_sdk::Vec<Address>, u32), OrbitHaulError> {
+    pub fn get_multisig_config(
+        env: Env,
+    ) -> Result<(soroban_sdk::Vec<Address>, u32), OrbitHaulError> {
         require_initialized(&env)?;
         let admins = storage::get_admin_list(&env).unwrap_or(soroban_sdk::Vec::new(&env));
         let threshold = storage::get_multisig_threshold(&env).unwrap_or(0);
@@ -5576,7 +5632,8 @@ impl OrbitHaulShipment {
             return Err(OrbitHaulError::ShipmentNotFound);
         }
 
-        storage::get_status_hash(&env, shipment_id, &status).ok_or(OrbitHaulError::StatusHashNotFound)
+        storage::get_status_hash(&env, shipment_id, &status)
+            .ok_or(OrbitHaulError::StatusHashNotFound)
     }
 
     /// Verify that a given data hash matches what was recorded on-chain for a
@@ -5881,7 +5938,10 @@ impl OrbitHaulShipment {
     ///
     /// # Errors
     /// * `OrbitHaulError::NotInitialized` - If contract is not initialized.
-    pub fn get_creation_quota_status(env: Env, company: Address) -> Result<(u32, u32), OrbitHaulError> {
+    pub fn get_creation_quota_status(
+        env: Env,
+        company: Address,
+    ) -> Result<(u32, u32), OrbitHaulError> {
         require_initialized(&env)?;
         let cfg = config::get_config(&env);
 
@@ -6010,14 +6070,23 @@ impl OrbitHaulShipment {
         for reading in readings.iter() {
             validation::validate_hash(&reading.data_hash)?;
             let index = storage::increment_iot_reading_count(&env, shipment_id);
-            storage::set_iot_reading(&env, shipment_id, index, &IoTDataPoint {
-                data_hash: reading.data_hash.clone(),
-                sensor_type: reading.sensor_type.clone(),
-                recorded_at: now,
-            });
+            storage::set_iot_reading(
+                &env,
+                shipment_id,
+                index,
+                &IoTDataPoint {
+                    data_hash: reading.data_hash.clone(),
+                    sensor_type: reading.sensor_type.clone(),
+                    recorded_at: now,
+                },
+            );
             env.events().publish(
                 (symbol_short!("iot_read"), shipment_id),
-                (index, reading.sensor_type.clone(), reading.data_hash.clone()),
+                (
+                    index,
+                    reading.sensor_type.clone(),
+                    reading.data_hash.clone(),
+                ),
             );
         }
 

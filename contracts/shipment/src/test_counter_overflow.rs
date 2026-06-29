@@ -2,7 +2,7 @@
 
 extern crate std;
 
-use crate::{types::DataKey, OrbitHaulError, LumenShipment, LumenShipmentClient};
+use crate::{types::DataKey, LumenShipment, LumenShipmentClient, OrbitHaulError};
 use soroban_sdk::{testutils::Address as _, Address, BytesN, Env, Vec};
 
 #[soroban_sdk::contract]

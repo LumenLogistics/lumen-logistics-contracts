@@ -5,7 +5,10 @@ mod tests {
     use crate::test_utils::*;
     use crate::types::*;
     use crate::{LumenShipment, LumenShipmentClient};
-    use soroban_sdk::{contract, contractimpl, testutils::Address as _, testutils::Ledger as _, Address, BytesN, Env, Vec};
+    use soroban_sdk::{
+        contract, contractimpl, testutils::Address as _, testutils::Ledger as _, Address, BytesN,
+        Env, Vec,
+    };
 
     #[contract]
     struct MockToken;
@@ -275,7 +278,10 @@ mod tests {
         let update_result =
             client.try_update_status(&carrier, &shipment_id, &ShipmentStatus::InTransit, &hash);
         assert!(
-            matches!(update_result, Err(Ok(crate::OrbitHaulError::ShipmentFinalized))),
+            matches!(
+                update_result,
+                Err(Ok(crate::OrbitHaulError::ShipmentFinalized))
+            ),
             "update_status must still be rejected after pause/unpause cycle"
         );
 

@@ -221,7 +221,10 @@ impl CircuitBreakerTracker {
 /// # Returns
 /// * `Ok(())` if operation should proceed
 /// * `Err(OrbitHaulError::CircuitBreakerOpen)` if breaker is open
-pub fn check_transfer_allowed(env: &Env, config: &CircuitBreakerConfig) -> Result<(), OrbitHaulError> {
+pub fn check_transfer_allowed(
+    env: &Env,
+    config: &CircuitBreakerConfig,
+) -> Result<(), OrbitHaulError> {
     let current_time = env.ledger().timestamp();
     let breaker_key = DataKey::CircuitBreakerState;
 

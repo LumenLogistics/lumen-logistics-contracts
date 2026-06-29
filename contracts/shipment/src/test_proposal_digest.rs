@@ -9,7 +9,7 @@
 
 #[cfg(test)]
 mod tests {
-    use crate::{test_utils, OrbitHaulError, LumenShipment, LumenShipmentClient};
+    use crate::{test_utils, LumenShipment, LumenShipmentClient, OrbitHaulError};
     use soroban_sdk::testutils::Ledger as _;
     use soroban_sdk::{contract, contractimpl, testutils::Address as _, Address, BytesN, Env, Vec};
 
@@ -388,11 +388,17 @@ mod tests {
 
         // Cannot add more approvals
         let approve_result = client.try_approve_action(&admin3, &proposal_id);
-        assert_eq!(approve_result, Err(Ok(crate::OrbitHaulError::ProposalExpired)));
+        assert_eq!(
+            approve_result,
+            Err(Ok(crate::OrbitHaulError::ProposalExpired))
+        );
 
         // Cannot execute even though we have 2 approvals
         let execute_result = client.try_execute_proposal(&proposal_id);
-        assert_eq!(execute_result, Err(Ok(crate::OrbitHaulError::ProposalExpired)));
+        assert_eq!(
+            execute_result,
+            Err(Ok(crate::OrbitHaulError::ProposalExpired))
+        );
     }
 
     /// Test: Cleanup assertion - expired proposal digest remains queryable.
@@ -513,8 +519,14 @@ mod tests {
         let execute_result = client.try_execute_proposal(&proposal_id);
 
         // Both should return the same ProposalExpired error
-        assert_eq!(approve_result, Err(Ok(crate::OrbitHaulError::ProposalExpired)));
-        assert_eq!(execute_result, Err(Ok(crate::OrbitHaulError::ProposalExpired)));
+        assert_eq!(
+            approve_result,
+            Err(Ok(crate::OrbitHaulError::ProposalExpired))
+        );
+        assert_eq!(
+            execute_result,
+            Err(Ok(crate::OrbitHaulError::ProposalExpired))
+        );
     }
 
     // ── Proposal expiration and cleanup flow ──────────────────────────────────
@@ -650,7 +662,10 @@ mod tests {
 
         // Proposal should still be usable
         let get_result = client.try_get_proposal(&proposal_id);
-        assert!(get_result.is_ok(), "Proposal must be accessible just before expiry");
+        assert!(
+            get_result.is_ok(),
+            "Proposal must be accessible just before expiry"
+        );
 
         // Now advance past the expiry threshold
         env.ledger().with_mut(|l| {
@@ -666,4 +681,3 @@ mod tests {
         );
     }
 }
-

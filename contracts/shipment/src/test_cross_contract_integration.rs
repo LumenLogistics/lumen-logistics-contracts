@@ -78,7 +78,7 @@ mod mock_fail {
 use crate::{
     test_utils,
     types::{SettlementOperation, SettlementState, ShipmentInput},
-    OrbitHaulShipment, OrbitHaulShipmentClient, OrbitHaulError, ShipmentStatus,
+    OrbitHaulError, OrbitHaulShipment, OrbitHaulShipmentClient, ShipmentStatus,
 };
 use soroban_sdk::{
     testutils::{Address as _, Events as _},

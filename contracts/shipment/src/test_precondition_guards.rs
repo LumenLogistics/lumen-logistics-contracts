@@ -8,7 +8,9 @@
 
 #[cfg(test)]
 mod tests {
-    use crate::{test_utils, OrbitHaulShipment, OrbitHaulShipmentClient, OrbitHaulError, ShipmentStatus};
+    use crate::{
+        test_utils, OrbitHaulError, OrbitHaulShipment, OrbitHaulShipmentClient, ShipmentStatus,
+    };
     use soroban_sdk::{contract, contractimpl, testutils::Address as _, Address, BytesN, Env, Vec};
 
     #[contract]
@@ -23,7 +25,13 @@ mod tests {
         }
     }
 
-    fn setup() -> (Env, OrbitHaulShipmentClient<'static>, Address, Address, Address) {
+    fn setup() -> (
+        Env,
+        OrbitHaulShipmentClient<'static>,
+        Address,
+        Address,
+        Address,
+    ) {
         let (env, admin) = test_utils::setup_env();
         let contract_id = env.register(OrbitHaulShipment, ());
         let client = OrbitHaulShipmentClient::new(&env, &contract_id);

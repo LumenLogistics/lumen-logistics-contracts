@@ -5,7 +5,7 @@
 
 #[cfg(test)]
 mod tests {
-    use crate::{test_utils, OrbitHaulShipment, OrbitHaulShipmentClient, OrbitHaulError};
+    use crate::{test_utils, OrbitHaulError, OrbitHaulShipment, OrbitHaulShipmentClient};
     use soroban_sdk::{
         contract, contractimpl,
         testutils::{Address as _, Ledger as _},

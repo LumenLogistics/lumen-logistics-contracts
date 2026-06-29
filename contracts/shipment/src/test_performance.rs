@@ -9,7 +9,9 @@
 
 extern crate std;
 
-use crate::{test_utils, types::ShipmentInput, OrbitHaulShipment, OrbitHaulShipmentClient, ShipmentStatus};
+use crate::{
+    test_utils, types::ShipmentInput, OrbitHaulShipment, OrbitHaulShipmentClient, ShipmentStatus,
+};
 use soroban_sdk::{contract, contractimpl, testutils::Address as _, Address, BytesN, Env, Vec};
 
 // ── Mock token ────────────────────────────────────────────────────────────────

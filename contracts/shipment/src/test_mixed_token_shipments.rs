@@ -20,7 +20,7 @@ extern crate std;
 use crate::{
     test_utils,
     types::{SettlementOperation, SettlementState, ShipmentStatus},
-    OrbitHaulShipment, OrbitHaulShipmentClient, OrbitHaulError,
+    OrbitHaulError, OrbitHaulShipment, OrbitHaulShipmentClient,
 };
 use navin_token::NavinTokenClient;
 use soroban_sdk::{

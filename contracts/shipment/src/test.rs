@@ -3,8 +3,9 @@
 extern crate std;
 
 use crate::{
-    types::DataKey, BreachType, GeofenceEvent, OrbitHaulShipment, OrbitHaulShipmentClient, OrbitHaulError,
-    PersistentRestoreDiagnostics, Severity, ShipmentInput, ShipmentStatus, StoragePresenceState,
+    types::DataKey, BreachType, GeofenceEvent, OrbitHaulError, OrbitHaulShipment,
+    OrbitHaulShipmentClient, PersistentRestoreDiagnostics, Severity, ShipmentInput, ShipmentStatus,
+    StoragePresenceState,
 };
 use soroban_sdk::{
     contract, contracterror, contractimpl,
@@ -116,7 +117,8 @@ pub fn setup_shipment_env_with_failing_token(
 /// Creates a fully-initialized shipment environment ready for use.
 /// Calls `initialize` on the client so tests can call contract methods
 /// directly without an extra initialization step.
-pub fn setup_initialized_shipment_env() -> (Env, OrbitHaulShipmentClient<'static>, Address, Address) {
+pub fn setup_initialized_shipment_env() -> (Env, OrbitHaulShipmentClient<'static>, Address, Address)
+{
     let (env, admin) = super::test_utils::setup_env();
     let token_contract = env.register(MockToken {}, ());
     let client = OrbitHaulShipmentClient::new(&env, &env.register(OrbitHaulShipment, ()));

@@ -5,7 +5,7 @@
 #![allow(deprecated)]
 
 use crate::{
-    test_utils, types::ShipmentStatus, OrbitHaulShipment, OrbitHaulShipmentClient, OrbitHaulError,
+    test_utils, types::ShipmentStatus, OrbitHaulError, OrbitHaulShipment, OrbitHaulShipmentClient,
 };
 use soroban_sdk::{testutils::Address as _, Address, BytesN, Env, IntoVal, Vec};
 

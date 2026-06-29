@@ -17,7 +17,7 @@
 
 extern crate std;
 
-use crate::{OrbitHaulShipment, OrbitHaulShipmentClient, OrbitHaulError, ShipmentStatus};
+use crate::{OrbitHaulError, OrbitHaulShipment, OrbitHaulShipmentClient, ShipmentStatus};
 use soroban_sdk::{
     contract, contractimpl, symbol_short,
     testutils::{Address as _, Ledger as _},

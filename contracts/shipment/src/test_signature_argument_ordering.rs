@@ -316,7 +316,13 @@ mod multisig_order_helpers {
 }
 
 /// Helper: set up a 2-of-3 multisig environment (3 admins, threshold 2).
-fn setup_multisig_2of3() -> (Env, OrbitHaulShipmentClient<'static>, Address, Address, Address) {
+fn setup_multisig_2of3() -> (
+    Env,
+    OrbitHaulShipmentClient<'static>,
+    Address,
+    Address,
+    Address,
+) {
     let (env, admin) = test_utils::setup_env();
     let token_id = env.register(multisig_order_helpers::MultiSigOrderToken {}, ());
     let client = OrbitHaulShipmentClient::new(&env, &env.register(OrbitHaulShipment, ()));

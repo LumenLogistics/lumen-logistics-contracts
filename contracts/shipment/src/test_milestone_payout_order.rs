@@ -7,7 +7,7 @@
 
 #![cfg(test)]
 
-use crate::{OrbitHaulShipment, OrbitHaulShipmentClient, OrbitHaulError, ShipmentStatus};
+use crate::{OrbitHaulError, OrbitHaulShipment, OrbitHaulShipmentClient, ShipmentStatus};
 use soroban_sdk::testutils::Address as _;
 use soroban_sdk::{contract, contractimpl, symbol_short, Address, BytesN, Env, Symbol, Vec};
 

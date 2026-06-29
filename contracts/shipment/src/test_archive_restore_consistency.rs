@@ -9,7 +9,9 @@
 #[cfg(test)]
 mod tests {
     extern crate std;
-    use crate::{test_utils, OrbitHaulShipment, OrbitHaulShipmentClient, OrbitHaulError, ShipmentStatus};
+    use crate::{
+        test_utils, OrbitHaulError, OrbitHaulShipment, OrbitHaulShipmentClient, ShipmentStatus,
+    };
     use soroban_sdk::{contract, contractimpl, testutils::Address as _, Address, BytesN, Env, Vec};
 
     #[contract]

@@ -26,7 +26,7 @@
 
 extern crate std;
 
-use crate::{test_utils, LumenShipment, LumenShipmentClient};
+use crate::{test_utils, OrbitHaulShipment, OrbitHaulShipmentClient};
 use soroban_sdk::{
     contract, contractimpl,
     testutils::{Address as _, Events},
@@ -52,7 +52,7 @@ impl FixtureReplayToken {
 
 fn fixture_env() -> (
     Env,
-    LumenShipmentClient<'static>,
+    OrbitHaulShipmentClient<'static>,
     Address, // admin
     Address, // company
     Address, // carrier
@@ -69,8 +69,8 @@ fn fixture_env() -> (
 
     StellarAssetClient::new(&env, &token_address).mint(&company, &10_000_000i128);
 
-    let shipment_addr = env.register(LumenShipment, ());
-    let client = LumenShipmentClient::new(&env, &shipment_addr);
+    let shipment_addr = env.register(OrbitHaulShipment, ());
+    let client = OrbitHaulShipmentClient::new(&env, &shipment_addr);
     client.initialize(&admin, &token_address);
     client.add_company(&admin, &company);
     client.add_carrier(&admin, &carrier);
@@ -857,7 +857,7 @@ fn test_idempotency_keys_differ_by_event_counter() {
 fn test_event_replay_blocked_by_salt_reuse() {
     let (env, admin) = test_utils::setup_env();
     let token = env.register(FixtureReplayToken {}, ());
-    let client = LumenShipmentClient::new(&env, &env.register(LumenShipment, ()));
+    let client = OrbitHaulShipmentClient::new(&env, &env.register(OrbitHaulShipment, ()));
     client.initialize(&admin, &token);
 
     // Set up multisig (need ≥ 2 admins).

@@ -153,7 +153,7 @@ fn extend_shipment_ttl_cached(env: &Env, shipment_id: u64, threshold: u32, exten
     storage::extend_shipment_ttl(env, shipment_id, threshold, extension);
 }
 
-fn validate_milestones(env: &Env, milestones: &Vec<(Symbol, u32)>) -> Result<(), LumenError> {
+fn validate_milestones(env: &Env, milestones: &Vec<(Symbol, u32)>) -> Result<(), OrbitHaulError> {
     if milestones.is_empty() {
         return Ok(());
     }
@@ -167,13 +167,13 @@ fn validate_milestones(env: &Env, milestones: &Vec<(Symbol, u32)>) -> Result<(),
     }
 
     if total_percentage != 100 {
-        return Err(LumenError::MilestoneSumInvalid);
+        return Err(OrbitHaulError::MilestoneSumInvalid);
     }
 
     Ok(())
 }
 
-fn persist_shipment(env: &Env, shipment: &Shipment) -> Result<(), LumenError> {
+fn persist_shipment(env: &Env, shipment: &Shipment) -> Result<(), OrbitHaulError> {
     validation::validate_shipment_invariants(shipment)?;
     storage::set_shipment(env, shipment);
     storage::set_escrow(env, shipment.id, shipment.escrow_amount);
@@ -186,37 +186,37 @@ fn persist_shipment(env: &Env, shipment: &Shipment) -> Result<(), LumenError> {
 /// literal whitespace cannot be constructed at all. The closest equivalent of
 /// a "whitespace-only" identifier is an empty Symbol, whose XDR encoding is
 /// exactly 8 bytes (4-byte type tag + 4-byte empty-length word). This helper
-/// returns `LumenError::InvalidSymbol` for such inputs and for Symbols that
+/// returns `OrbitHaulError::InvalidSymbol` for such inputs and for Symbols that
 /// exceed the 12-character Stellar maximum, giving registration-adjacent paths
 /// a single canonical guard for malformed symbol inputs.
 pub(crate) fn validate_symbol_not_whitespace_only(
     env: &Env,
     sym: &Symbol,
-) -> Result<(), LumenError> {
+) -> Result<(), OrbitHaulError> {
     let xdr = sym.to_xdr(env);
     // 8 bytes → 0-character symbol (empty / whitespace-only equivalent).
     if xdr.len() <= 8 {
-        return Err(LumenError::InvalidSymbol);
+        return Err(OrbitHaulError::InvalidSymbol);
     }
     // > 20 bytes → more than 12 characters (exceeds Stellar Symbol limit).
     if xdr.len() > 20 {
-        return Err(LumenError::InvalidSymbol);
+        return Err(OrbitHaulError::InvalidSymbol);
     }
     Ok(())
 }
 
-pub(crate) fn checked_add_i128(a: i128, b: i128) -> Result<i128, LumenError> {
-    a.checked_add(b).ok_or(LumenError::ArithmeticError)
+pub(crate) fn checked_add_i128(a: i128, b: i128) -> Result<i128, OrbitHaulError> {
+    a.checked_add(b).ok_or(OrbitHaulError::ArithmeticError)
 }
 
-pub(crate) fn checked_sub_i128(a: i128, b: i128) -> Result<i128, LumenError> {
-    a.checked_sub(b).ok_or(LumenError::ArithmeticError)
+pub(crate) fn checked_sub_i128(a: i128, b: i128) -> Result<i128, OrbitHaulError> {
+    a.checked_sub(b).ok_or(OrbitHaulError::ArithmeticError)
 }
 
-pub(crate) fn checked_sub_escrow(a: i128, b: i128) -> Result<i128, LumenError> {
-    let res = a.checked_sub(b).ok_or(LumenError::ArithmeticError)?;
+pub(crate) fn checked_sub_escrow(a: i128, b: i128) -> Result<i128, OrbitHaulError> {
+    let res = a.checked_sub(b).ok_or(OrbitHaulError::ArithmeticError)?;
     if res < 0 {
-        return Err(LumenError::ArithmeticError);
+        return Err(OrbitHaulError::ArithmeticError);
     }
     Ok(res)
 }
@@ -225,7 +225,7 @@ fn internal_release_escrow(
     env: &Env,
     shipment: &mut Shipment,
     amount: i128,
-) -> Result<(), LumenError> {
+) -> Result<(), OrbitHaulError> {
     if amount <= 0 {
         return Ok(());
     }
@@ -237,7 +237,7 @@ fn internal_release_escrow(
 
     if actual_release > 0 {
         // Get token contract address
-        let token_contract = storage::get_token_contract(env).ok_or(LumenError::NotInitialized)?;
+        let token_contract = storage::get_token_contract(env).ok_or(OrbitHaulError::NotInitialized)?;
         let contract_address = env.current_contract_address();
 
         // Create settlement record in Pending state
@@ -285,22 +285,22 @@ pub(crate) fn checked_mul_div_i128(
     value: i128,
     multiplier: i128,
     divisor: i128,
-) -> Result<i128, LumenError> {
+) -> Result<i128, OrbitHaulError> {
     if divisor == 0 {
-        return Err(LumenError::ArithmeticError);
+        return Err(OrbitHaulError::ArithmeticError);
     }
     let product = value
         .checked_mul(multiplier)
-        .ok_or(LumenError::ArithmeticError)?;
+        .ok_or(OrbitHaulError::ArithmeticError)?;
     Ok(product / divisor)
 }
 
-fn with_reentrancy_lock<T, F>(env: &Env, operation: F) -> Result<T, LumenError>
+fn with_reentrancy_lock<T, F>(env: &Env, operation: F) -> Result<T, OrbitHaulError>
 where
-    F: FnOnce() -> Result<T, LumenError>,
+    F: FnOnce() -> Result<T, OrbitHaulError>,
 {
     if storage::is_reentrancy_locked(env) {
-        return Err(LumenError::ReentrancyDetected);
+        return Err(OrbitHaulError::ReentrancyDetected);
     }
 
     storage::set_reentrancy_lock(env, true);
@@ -331,7 +331,7 @@ fn create_settlement(
     amount: i128,
     from: &Address,
     to: &Address,
-) -> Result<u64, LumenError> {
+) -> Result<u64, OrbitHaulError> {
     let settlement_id = storage::increment_settlement_counter(env);
     let settlement = SettlementRecord {
         settlement_id,
@@ -351,9 +351,9 @@ fn create_settlement(
 }
 
 /// Mark a settlement as completed.
-fn complete_settlement(env: &Env, settlement_id: u64, shipment_id: u64) -> Result<(), LumenError> {
+fn complete_settlement(env: &Env, settlement_id: u64, shipment_id: u64) -> Result<(), OrbitHaulError> {
     let mut settlement =
-        storage::get_settlement(env, settlement_id).ok_or(LumenError::ShipmentNotFound)?; // Reusing error for simplicity
+        storage::get_settlement(env, settlement_id).ok_or(OrbitHaulError::ShipmentNotFound)?; // Reusing error for simplicity
     settlement.state = SettlementState::Completed;
     settlement.completed_at = Some(env.ledger().timestamp());
     storage::set_settlement(env, &settlement);
@@ -367,9 +367,9 @@ fn fail_settlement(
     settlement_id: u64,
     shipment_id: u64,
     error_code: u32,
-) -> Result<(), LumenError> {
+) -> Result<(), OrbitHaulError> {
     let mut settlement =
-        storage::get_settlement(env, settlement_id).ok_or(LumenError::ShipmentNotFound)?; // Reusing error for simplicity
+        storage::get_settlement(env, settlement_id).ok_or(OrbitHaulError::ShipmentNotFound)?; // Reusing error for simplicity
     settlement.state = SettlementState::Failed;
     settlement.completed_at = Some(env.ledger().timestamp());
     settlement.error_code = Some(error_code);
@@ -378,9 +378,9 @@ fn fail_settlement(
     Ok(())
 }
 
-fn require_not_finalized(shipment: &Shipment) -> Result<(), LumenError> {
+fn require_not_finalized(shipment: &Shipment) -> Result<(), OrbitHaulError> {
     if shipment.finalized {
-        return Err(LumenError::ShipmentFinalized);
+        return Err(OrbitHaulError::ShipmentFinalized);
     }
     Ok(())
 }
@@ -389,19 +389,19 @@ fn require_not_finalized(shipment: &Shipment) -> Result<(), LumenError> {
 pub(crate) fn validate_shipment_transition(
     from: &ShipmentStatus,
     to: &ShipmentStatus,
-) -> Result<(), LumenError> {
+) -> Result<(), OrbitHaulError> {
     if !from.is_valid_transition(to) {
-        return Err(LumenError::InvalidStatus);
+        return Err(OrbitHaulError::InvalidStatus);
     }
     Ok(())
 }
 
 /// Build a 32-byte action hash from arbitrary bytes and check/set the idempotency window.
 /// Returns `DuplicateAction` if the hash is already present in temporary storage.
-fn check_idempotency(env: &Env, payload: soroban_sdk::Bytes) -> Result<(), LumenError> {
+fn check_idempotency(env: &Env, payload: soroban_sdk::Bytes) -> Result<(), OrbitHaulError> {
     let action_hash: BytesN<32> = env.crypto().sha256(&payload).into();
     if storage::has_idempotency_window(env, &action_hash) {
-        return Err(LumenError::DuplicateAction);
+        return Err(OrbitHaulError::DuplicateAction);
     }
     let window = config::get_config(env).idempotency_window_seconds;
     storage::set_idempotency_window(env, &action_hash, window);
@@ -424,11 +424,11 @@ impl TokenOperation {
         }
     }
 
-    fn error(self) -> LumenError {
+    fn error(self) -> OrbitHaulError {
         match self {
-            TokenOperation::Transfer => LumenError::TokenTransferFailed,
+            TokenOperation::Transfer => OrbitHaulError::TokenTransferFailed,
             #[cfg(test)]
-            TokenOperation::Mint => LumenError::TokenMintFailed,
+            TokenOperation::Mint => OrbitHaulError::TokenMintFailed,
         }
     }
 }
@@ -441,9 +441,9 @@ impl TokenOperation {
 /// in escrow operations, so they are rejected early.
 ///
 /// # Errors
-/// Returns `LumenError::InvalidTokenDecimals` if the token returns ≠ 7 decimals,
+/// Returns `OrbitHaulError::InvalidTokenDecimals` if the token returns ≠ 7 decimals,
 /// or if the call to the token contract fails (treated as an incompatible token).
-fn validate_token_decimals(env: &Env, token_contract: &Address) -> Result<(), LumenError> {
+fn validate_token_decimals(env: &Env, token_contract: &Address) -> Result<(), OrbitHaulError> {
     let args: Vec<soroban_sdk::Val> = Vec::new(env);
     let result = env.try_invoke_contract::<u32, soroban_sdk::Error>(
         token_contract,
@@ -452,7 +452,7 @@ fn validate_token_decimals(env: &Env, token_contract: &Address) -> Result<(), Lu
     );
     match result {
         Ok(Ok(decimals)) if decimals == crate::types::EXPECTED_TOKEN_DECIMALS => Ok(()),
-        _ => Err(LumenError::InvalidTokenDecimals),
+        _ => Err(OrbitHaulError::InvalidTokenDecimals),
     }
 }
 
@@ -461,7 +461,7 @@ fn invoke_token_operation(
     token_contract: &Address,
     operation: TokenOperation,
     args: Vec<soroban_sdk::Val>,
-) -> Result<(), LumenError> {
+) -> Result<(), OrbitHaulError> {
     match env.try_invoke_contract::<(), soroban_sdk::Error>(
         token_contract,
         &operation.symbol(),
@@ -478,7 +478,7 @@ fn invoke_token_transfer(
     from: &Address,
     to: &Address,
     amount: i128,
-) -> Result<(), LumenError> {
+) -> Result<(), OrbitHaulError> {
     let cb_config = circuit_breaker::CircuitBreakerConfig::default();
     circuit_breaker::check_transfer_allowed(env, &cb_config)?;
 
@@ -506,7 +506,7 @@ fn invoke_token_mint(
     admin: &Address,
     to: &Address,
     amount: i128,
-) -> Result<(), LumenError> {
+) -> Result<(), OrbitHaulError> {
     let mut args: soroban_sdk::Vec<soroban_sdk::Val> = Vec::new(env);
     args.push_back(admin.clone().into_val(env));
     args.push_back(to.clone().into_val(env));
@@ -514,21 +514,21 @@ fn invoke_token_mint(
     invoke_token_operation(env, token_contract, TokenOperation::Mint, args)
 }
 
-fn require_initialized(env: &Env) -> Result<(), LumenError> {
+fn require_initialized(env: &Env) -> Result<(), OrbitHaulError> {
     if !storage::is_initialized(env) {
-        return Err(LumenError::NotInitialized);
+        return Err(OrbitHaulError::NotInitialized);
     }
     Ok(())
 }
 
-fn require_not_paused(env: &Env) -> Result<(), LumenError> {
+fn require_not_paused(env: &Env) -> Result<(), OrbitHaulError> {
     if storage::is_paused(env) {
-        return Err(LumenError::ContractPaused);
+        return Err(OrbitHaulError::ContractPaused);
     }
     Ok(())
 }
 
-fn require_admin_or_guardian(env: &Env, address: &Address) -> Result<(), LumenError> {
+fn require_admin_or_guardian(env: &Env, address: &Address) -> Result<(), OrbitHaulError> {
     require_initialized(env)?;
     if storage::get_admin(env) == *address {
         return Ok(());
@@ -538,10 +538,10 @@ fn require_admin_or_guardian(env: &Env, address: &Address) -> Result<(), LumenEr
     {
         return Ok(());
     }
-    Err(LumenError::Unauthorized)
+    Err(OrbitHaulError::Unauthorized)
 }
 
-fn require_admin_or_operator(env: &Env, address: &Address) -> Result<(), LumenError> {
+fn require_admin_or_operator(env: &Env, address: &Address) -> Result<(), OrbitHaulError> {
     require_initialized(env)?;
     if storage::get_admin(env) == *address {
         return Ok(());
@@ -551,10 +551,10 @@ fn require_admin_or_operator(env: &Env, address: &Address) -> Result<(), LumenEr
     {
         return Ok(());
     }
-    Err(LumenError::Unauthorized)
+    Err(OrbitHaulError::Unauthorized)
 }
 
-fn require_role(env: &Env, address: &Address, role: Role) -> Result<(), LumenError> {
+fn require_role(env: &Env, address: &Address, role: Role) -> Result<(), OrbitHaulError> {
     require_initialized(env)?;
 
     match role {
@@ -562,83 +562,83 @@ fn require_role(env: &Env, address: &Address, role: Role) -> Result<(), LumenErr
             if storage::has_company_role(env, address) {
                 // Check if role is suspended via generic role suspension
                 if storage::is_role_suspended(env, address, &Role::Company) {
-                    return Err(LumenError::Unauthorized);
+                    return Err(OrbitHaulError::Unauthorized);
                 }
                 // Check if company specifically is suspended
                 if storage::is_company_suspended(env, address) {
-                    return Err(LumenError::CompanySuspended);
+                    return Err(OrbitHaulError::CompanySuspended);
                 }
                 Ok(())
             } else {
-                Err(LumenError::Unauthorized)
+                Err(OrbitHaulError::Unauthorized)
             }
         }
         Role::Carrier => {
             if storage::has_carrier_role(env, address) {
                 // Check if role is suspended
                 if storage::is_role_suspended(env, address, &Role::Carrier) {
-                    return Err(LumenError::Unauthorized);
+                    return Err(OrbitHaulError::Unauthorized);
                 }
                 // Also check legacy carrier-specific suspension
                 if storage::is_carrier_suspended(env, address) {
-                    return Err(LumenError::CarrierSuspended);
+                    return Err(OrbitHaulError::CarrierSuspended);
                 }
                 Ok(())
             } else {
-                Err(LumenError::Unauthorized)
+                Err(OrbitHaulError::Unauthorized)
             }
         }
         Role::Guardian => {
             if storage::has_role(env, address, &Role::Guardian) {
                 if storage::is_role_suspended(env, address, &Role::Guardian) {
-                    return Err(LumenError::Unauthorized);
+                    return Err(OrbitHaulError::Unauthorized);
                 }
                 Ok(())
             } else {
-                Err(LumenError::Unauthorized)
+                Err(OrbitHaulError::Unauthorized)
             }
         }
         Role::Operator => {
             if storage::has_role(env, address, &Role::Operator) {
                 if storage::is_role_suspended(env, address, &Role::Operator) {
-                    return Err(LumenError::Unauthorized);
+                    return Err(OrbitHaulError::Unauthorized);
                 }
                 Ok(())
             } else {
-                Err(LumenError::Unauthorized)
+                Err(OrbitHaulError::Unauthorized)
             }
         }
-        Role::Unassigned => Err(LumenError::Unauthorized),
+        Role::Unassigned => Err(OrbitHaulError::Unauthorized),
     }
 }
 
-fn require_active_company(env: &Env, company: &Address) -> Result<(), LumenError> {
+fn require_active_company(env: &Env, company: &Address) -> Result<(), OrbitHaulError> {
     if storage::is_company_suspended(env, company) {
-        return Err(LumenError::CompanySuspended);
+        return Err(OrbitHaulError::CompanySuspended);
     }
     // Also check generic role suspension for completeness
     if storage::is_role_suspended(env, company, &Role::Company) {
-        return Err(LumenError::Unauthorized);
+        return Err(OrbitHaulError::Unauthorized);
     }
     Ok(())
 }
 
-fn require_active_carrier(env: &Env, carrier: &Address) -> Result<(), LumenError> {
+fn require_active_carrier(env: &Env, carrier: &Address) -> Result<(), OrbitHaulError> {
     if storage::is_carrier_suspended(env, carrier) {
-        return Err(LumenError::CarrierSuspended);
+        return Err(OrbitHaulError::CarrierSuspended);
     }
     // Also check generic role suspension
     if storage::is_role_suspended(env, carrier, &Role::Carrier) {
-        return Err(LumenError::Unauthorized);
+        return Err(OrbitHaulError::Unauthorized);
     }
     Ok(())
 }
 
 /// Require that `caller` is the contract admin. Centralizes the repeated
 /// `if storage::get_admin(&env) != admin { return Err(Unauthorized) }` pattern.
-fn require_admin(env: &Env, caller: &Address) -> Result<(), LumenError> {
+fn require_admin(env: &Env, caller: &Address) -> Result<(), OrbitHaulError> {
     if storage::get_admin(env) != *caller {
-        return Err(LumenError::Unauthorized);
+        return Err(OrbitHaulError::Unauthorized);
     }
     Ok(())
 }
@@ -659,13 +659,13 @@ impl LumenShipment {
     /// * `value` - The metadata value (max 32 chars).
     ///
     /// # Returns
-    /// * `Result<(), LumenError>` - Ok if successfully set.
+    /// * `Result<(), OrbitHaulError>` - Ok if successfully set.
     ///
     /// # Errors
-    /// * `LumenError::NotInitialized` - If contract is not initialized.
-    /// * `LumenError::ShipmentNotFound` - If the shipment doesn't exist.
-    /// * `LumenError::Unauthorized` - If the caller is not the sender or admin.
-    /// * `LumenError::MetadataLimitExceeded` - If adding would exceed the 5 key limit.
+    /// * `OrbitHaulError::NotInitialized` - If contract is not initialized.
+    /// * `OrbitHaulError::ShipmentNotFound` - If the shipment doesn't exist.
+    /// * `OrbitHaulError::Unauthorized` - If the caller is not the sender or admin.
+    /// * `OrbitHaulError::MetadataLimitExceeded` - If adding would exceed the 5 key limit.
     ///
     /// # Examples
     /// ```rust
@@ -677,7 +677,7 @@ impl LumenShipment {
         shipment_id: u64,
         key: Symbol,
         value: Symbol,
-    ) -> Result<(), LumenError> {
+    ) -> Result<(), OrbitHaulError> {
         require_initialized(&env)?;
         require_not_paused(&env)?;
         caller.require_auth();
@@ -691,11 +691,11 @@ impl LumenShipment {
 
         let admin = storage::get_admin(&env);
         let mut shipment =
-            storage::get_shipment(&env, shipment_id).ok_or(LumenError::ShipmentNotFound)?;
+            storage::get_shipment(&env, shipment_id).ok_or(OrbitHaulError::ShipmentNotFound)?;
         require_not_finalized(&shipment)?;
         // Only sender or admin can set
         if caller != shipment.sender && caller != admin {
-            return Err(LumenError::Unauthorized);
+            return Err(OrbitHaulError::Unauthorized);
         }
         // If caller is the company (sender), check for suspension
         if caller == shipment.sender {
@@ -706,7 +706,7 @@ impl LumenShipment {
         // Enforce max metadata entries from config
         let config = config::get_config(&env);
         if !metadata.contains_key(key.clone()) && metadata.len() >= config.max_metadata_entries {
-            return Err(LumenError::MetadataLimitExceeded);
+            return Err(OrbitHaulError::MetadataLimitExceeded);
         }
         metadata.set(key.clone(), value.clone());
         shipment.metadata = Some(metadata);
@@ -726,18 +726,18 @@ impl LumenShipment {
     /// * `note_hash` - SHA-256 hash of the off-chain note text.
     ///
     /// # Returns
-    /// * `Result<(), LumenError>` - Ok if successfully appended.
+    /// * `Result<(), OrbitHaulError>` - Ok if successfully appended.
     ///
     /// # Errors
-    /// * `LumenError::NotInitialized` - If contract is not initialized.
-    /// * `LumenError::ShipmentNotFound` - If the shipment doesn't exist.
-    /// * `LumenError::Unauthorized` - If the caller is not involved in the shipment or admin.
+    /// * `OrbitHaulError::NotInitialized` - If contract is not initialized.
+    /// * `OrbitHaulError::ShipmentNotFound` - If the shipment doesn't exist.
+    /// * `OrbitHaulError::Unauthorized` - If the caller is not involved in the shipment or admin.
     pub fn append_note_hash(
         env: Env,
         reporter: Address,
         shipment_id: u64,
         note_hash: BytesN<32>,
-    ) -> Result<(), LumenError> {
+    ) -> Result<(), OrbitHaulError> {
         require_initialized(&env)?;
         require_not_paused(&env)?;
         reporter.require_auth();
@@ -746,7 +746,7 @@ impl LumenShipment {
         validation::validate_hash(&note_hash)?;
 
         let shipment =
-            storage::get_shipment(&env, shipment_id).ok_or(LumenError::ShipmentNotFound)?;
+            storage::get_shipment(&env, shipment_id).ok_or(OrbitHaulError::ShipmentNotFound)?;
         let admin = storage::get_admin(&env);
 
         // Authorization: Sender, Receiver, Carrier, or Admin
@@ -755,7 +755,7 @@ impl LumenShipment {
             && reporter != shipment.carrier
             && reporter != admin
         {
-            return Err(LumenError::Unauthorized);
+            return Err(OrbitHaulError::Unauthorized);
         }
 
         // If reporter is the company (sender), check for suspension
@@ -767,7 +767,7 @@ impl LumenShipment {
         let config = config::get_config(&env);
         let current_note_count = storage::get_note_count(&env, shipment_id);
         if current_note_count >= config.max_notes_per_shipment {
-            return Err(LumenError::NoteLimitExceeded);
+            return Err(OrbitHaulError::NoteLimitExceeded);
         }
 
         // notes are append-only; we just increment the counter and store at the next index.
@@ -790,13 +790,13 @@ impl LumenShipment {
     /// * `evidence_hash` - SHA-256 hash of the off-chain evidence.
     ///
     /// # Returns
-    /// * `Result<(), LumenError>` - Ok if successfully added.
+    /// * `Result<(), OrbitHaulError>` - Ok if successfully added.
     pub fn add_dispute_evidence_hash(
         env: Env,
         reporter: Address,
         shipment_id: u64,
         evidence_hash: BytesN<32>,
-    ) -> Result<(), LumenError> {
+    ) -> Result<(), OrbitHaulError> {
         require_initialized(&env)?;
         require_not_paused(&env)?;
         reporter.require_auth();
@@ -805,13 +805,13 @@ impl LumenShipment {
         validation::validate_hash(&evidence_hash)?;
 
         let shipment =
-            storage::get_shipment(&env, shipment_id).ok_or(LumenError::ShipmentNotFound)?;
+            storage::get_shipment(&env, shipment_id).ok_or(OrbitHaulError::ShipmentNotFound)?;
         require_not_finalized(&shipment)?;
         let admin = storage::get_admin(&env);
 
         // State check: Only in Disputed state
         if shipment.status != ShipmentStatus::Disputed {
-            return Err(LumenError::InvalidStatus);
+            return Err(OrbitHaulError::InvalidStatus);
         }
 
         // Authorization: Sender, Receiver, Carrier, or Admin
@@ -820,7 +820,7 @@ impl LumenShipment {
             && reporter != shipment.carrier
             && reporter != admin
         {
-            return Err(LumenError::Unauthorized);
+            return Err(OrbitHaulError::Unauthorized);
         }
 
         // If reporter is the company (sender), check for suspension
@@ -832,7 +832,7 @@ impl LumenShipment {
         let config = config::get_config(&env);
         let current_evidence_count = storage::get_evidence_count(&env, shipment_id);
         if current_evidence_count >= config.max_evidence_per_dispute {
-            return Err(LumenError::EvidenceLimitExceeded);
+            return Err(OrbitHaulError::EvidenceLimitExceeded);
         }
 
         // Increment counter and store hash
@@ -851,10 +851,10 @@ impl LumenShipment {
     }
 
     /// Get the total number of evidence hashes for a shipment dispute.
-    pub fn get_dispute_evidence_count(env: Env, shipment_id: u64) -> Result<u32, LumenError> {
+    pub fn get_dispute_evidence_count(env: Env, shipment_id: u64) -> Result<u32, OrbitHaulError> {
         require_initialized(&env)?;
         if storage::get_shipment(&env, shipment_id).is_none() {
-            return Err(LumenError::ShipmentNotFound);
+            return Err(OrbitHaulError::ShipmentNotFound);
         }
         Ok(storage::get_evidence_count(&env, shipment_id))
     }
@@ -864,14 +864,14 @@ impl LumenShipment {
         env: Env,
         shipment_id: u64,
         index: u32,
-    ) -> Result<Option<BytesN<32>>, LumenError> {
+    ) -> Result<Option<BytesN<32>>, OrbitHaulError> {
         require_initialized(&env)?;
         if storage::get_shipment(&env, shipment_id).is_none() {
-            return Err(LumenError::ShipmentNotFound);
+            return Err(OrbitHaulError::ShipmentNotFound);
         }
         let count = storage::get_evidence_count(&env, shipment_id);
         if index >= count {
-            return Err(LumenError::EvidenceNotFound);
+            return Err(OrbitHaulError::EvidenceNotFound);
         }
         Ok(storage::get_evidence_hash(&env, shipment_id, index))
     }
@@ -884,11 +884,11 @@ impl LumenShipment {
     /// * `shipment_id` - ID of the shipment.
     ///
     /// # Returns
-    /// * `Result<u32, LumenError>` - The current nonce.
-    pub fn get_integration_nonce(env: Env, shipment_id: u64) -> Result<u32, LumenError> {
+    /// * `Result<u32, OrbitHaulError>` - The current nonce.
+    pub fn get_integration_nonce(env: Env, shipment_id: u64) -> Result<u32, OrbitHaulError> {
         require_initialized(&env)?;
         let shipment =
-            storage::get_shipment(&env, shipment_id).ok_or(LumenError::ShipmentNotFound)?;
+            storage::get_shipment(&env, shipment_id).ok_or(OrbitHaulError::ShipmentNotFound)?;
         Ok(shipment.integration_nonce)
     }
 
@@ -899,12 +899,12 @@ impl LumenShipment {
     /// * `shipment_id` - ID of the shipment.
     ///
     /// # Returns
-    /// * `Result<u32, LumenError>` - Number of notes for the shipment.
-    pub fn get_note_count(env: Env, shipment_id: u64) -> Result<u32, LumenError> {
+    /// * `Result<u32, OrbitHaulError>` - Number of notes for the shipment.
+    pub fn get_note_count(env: Env, shipment_id: u64) -> Result<u32, OrbitHaulError> {
         require_initialized(&env)?;
         // Verify existence or check archived
         if storage::get_shipment(&env, shipment_id).is_none() {
-            return Err(LumenError::ShipmentNotFound);
+            return Err(OrbitHaulError::ShipmentNotFound);
         }
         Ok(storage::get_note_count(&env, shipment_id))
     }
@@ -917,19 +917,19 @@ impl LumenShipment {
     /// * `index` - The 0-based index of the note.
     ///
     /// # Returns
-    /// * `Result<Option<BytesN<32>>, LumenError>` - The note hash if found.
+    /// * `Result<Option<BytesN<32>>, OrbitHaulError>` - The note hash if found.
     pub fn get_note_hash(
         env: Env,
         shipment_id: u64,
         index: u32,
-    ) -> Result<Option<BytesN<32>>, LumenError> {
+    ) -> Result<Option<BytesN<32>>, OrbitHaulError> {
         require_initialized(&env)?;
         if storage::get_shipment(&env, shipment_id).is_none() {
-            return Err(LumenError::ShipmentNotFound);
+            return Err(OrbitHaulError::ShipmentNotFound);
         }
         let count = storage::get_note_count(&env, shipment_id);
         if index >= count {
-            return Err(LumenError::NoteNotFound);
+            return Err(OrbitHaulError::NoteNotFound);
         }
         Ok(storage::get_note_hash(&env, shipment_id, index))
     }
@@ -942,10 +942,10 @@ impl LumenShipment {
     /// * `token_contract` - The address of the token contract used for escrow.
     ///
     /// # Returns
-    /// * `Result<(), LumenError>` - Ok if initialized.
+    /// * `Result<(), OrbitHaulError>` - Ok if initialized.
     ///
     /// # Errors
-    /// * `LumenError::AlreadyInitialized` - If called when already initialized.
+    /// * `OrbitHaulError::AlreadyInitialized` - If called when already initialized.
     ///
     /// # Examples
     ///
@@ -962,9 +962,9 @@ impl LumenShipment {
     ///
     /// client.initialize(&admin, &token_contract);
     /// ```
-    pub fn initialize(env: Env, admin: Address, token_contract: Address) -> Result<(), LumenError> {
+    pub fn initialize(env: Env, admin: Address, token_contract: Address) -> Result<(), OrbitHaulError> {
         if storage::is_initialized(&env) {
-            return Err(LumenError::AlreadyInitialized);
+            return Err(OrbitHaulError::AlreadyInitialized);
         }
 
         storage::set_admin(&env, &admin);
@@ -996,12 +996,12 @@ impl LumenShipment {
     /// * `env` - Execution environment.
     /// * `admin` - Contract admin address.
     /// * `limit` - The new active shipment limit.
-    pub fn set_shipment_limit(env: Env, admin: Address, limit: u32) -> Result<(), LumenError> {
+    pub fn set_shipment_limit(env: Env, admin: Address, limit: u32) -> Result<(), OrbitHaulError> {
         require_initialized(&env)?;
         admin.require_auth();
 
         if storage::get_admin(&env) != admin {
-            return Err(LumenError::Unauthorized);
+            return Err(OrbitHaulError::Unauthorized);
         }
 
         storage::set_shipment_limit(&env, limit);
@@ -1012,7 +1012,7 @@ impl LumenShipment {
     }
 
     /// Get the current shipment limit.
-    pub fn get_shipment_limit(env: Env) -> Result<u32, LumenError> {
+    pub fn get_shipment_limit(env: Env) -> Result<u32, OrbitHaulError> {
         require_initialized(&env)?;
         Ok(storage::get_shipment_limit(&env))
     }
@@ -1023,12 +1023,12 @@ impl LumenShipment {
         admin: Address,
         company: Address,
         limit: u32,
-    ) -> Result<(), LumenError> {
+    ) -> Result<(), OrbitHaulError> {
         require_initialized(&env)?;
         admin.require_auth();
 
         if storage::get_admin(&env) != admin {
-            return Err(LumenError::Unauthorized);
+            return Err(OrbitHaulError::Unauthorized);
         }
 
         storage::set_company_shipment_limit(&env, &company, limit);
@@ -1037,13 +1037,13 @@ impl LumenShipment {
     }
 
     /// Get effective shipment limit for a company (override or global fallback).
-    pub fn get_effective_shipment_limit(env: Env, company: Address) -> Result<u32, LumenError> {
+    pub fn get_effective_shipment_limit(env: Env, company: Address) -> Result<u32, OrbitHaulError> {
         require_initialized(&env)?;
         Ok(storage::get_effective_shipment_limit(&env, &company))
     }
 
     /// Get the current active shipment count for a company.
-    pub fn get_active_shipment_count(env: Env, company: Address) -> Result<u32, LumenError> {
+    pub fn get_active_shipment_count(env: Env, company: Address) -> Result<u32, OrbitHaulError> {
         require_initialized(&env)?;
         Ok(storage::get_active_shipment_count(&env, &company))
     }
@@ -1054,16 +1054,16 @@ impl LumenShipment {
     /// * `env` - Execution environment.
     ///
     /// # Returns
-    /// * `Result<Address, LumenError>` - The current admin address.
+    /// * `Result<Address, OrbitHaulError>` - The current admin address.
     ///
     /// # Errors
-    /// * `LumenError::NotInitialized` - If contract is not initialized.
+    /// * `OrbitHaulError::NotInitialized` - If contract is not initialized.
     ///
     /// # Examples
     /// ```rust
     /// // let admin = contract.get_admin(&env);
     /// ```
-    pub fn get_admin(env: Env) -> Result<Address, LumenError> {
+    pub fn get_admin(env: Env) -> Result<Address, OrbitHaulError> {
         require_initialized(&env)?;
         Ok(storage::get_admin(&env))
     }
@@ -1074,16 +1074,16 @@ impl LumenShipment {
     /// * `env` - Execution environment.
     ///
     /// # Returns
-    /// * `Result<u32, LumenError>` - The version number of the contract.
+    /// * `Result<u32, OrbitHaulError>` - The version number of the contract.
     ///
     /// # Errors
-    /// * `LumenError::NotInitialized` - If contract is not initialized.
+    /// * `OrbitHaulError::NotInitialized` - If contract is not initialized.
     ///
     /// # Examples
     /// ```rust
     /// // let version = contract.get_version(&env);
     /// ```
-    pub fn get_version(env: Env) -> Result<u32, LumenError> {
+    pub fn get_version(env: Env) -> Result<u32, OrbitHaulError> {
         require_initialized(&env)?;
         Ok(storage::get_version(&env))
     }
@@ -1094,8 +1094,8 @@ impl LumenShipment {
     /// * `env` - Execution environment.
     ///
     /// # Returns
-    /// * `Result<u32, LumenError>` - The hash algorithm version constant.
-    pub fn get_hash_algo_version(env: Env) -> Result<u32, LumenError> {
+    /// * `Result<u32, OrbitHaulError>` - The hash algorithm version constant.
+    pub fn get_hash_algo_version(env: Env) -> Result<u32, OrbitHaulError> {
         require_initialized(&env)?;
         Ok(DEFAULT_HASH_ALGO)
     }
@@ -1106,8 +1106,8 @@ impl LumenShipment {
     /// * `env` - Execution environment.
     ///
     /// # Returns
-    /// * `Result<u32, LumenError>` - Expected token decimals (7).
-    pub fn get_expected_token_decimals(env: Env) -> Result<u32, LumenError> {
+    /// * `Result<u32, OrbitHaulError>` - Expected token decimals (7).
+    pub fn get_expected_token_decimals(env: Env) -> Result<u32, OrbitHaulError> {
         require_initialized(&env)?;
         Ok(crate::types::EXPECTED_TOKEN_DECIMALS)
     }
@@ -1120,16 +1120,16 @@ impl LumenShipment {
     /// * `env` - Execution environment.
     ///
     /// # Returns
-    /// * `Result<ContractMetadata, LumenError>` - Snapshot of contract metadata.
+    /// * `Result<ContractMetadata, OrbitHaulError>` - Snapshot of contract metadata.
     ///
     /// # Errors
-    /// * `LumenError::NotInitialized` - If contract is not initialized.
+    /// * `OrbitHaulError::NotInitialized` - If contract is not initialized.
     ///
     /// # Examples
     /// ```rust
     /// // let metadata = contract.get_contract_metadata(&env);
     /// ```
-    pub fn get_contract_metadata(env: Env) -> Result<ContractMetadata, LumenError> {
+    pub fn get_contract_metadata(env: Env) -> Result<ContractMetadata, OrbitHaulError> {
         require_initialized(&env)?;
         Ok(ContractMetadata {
             version: storage::get_version(&env),
@@ -1146,16 +1146,16 @@ impl LumenShipment {
     /// * `env` - Execution environment.
     ///
     /// # Returns
-    /// * `Result<u64, LumenError>` - The total number of shipments created.
+    /// * `Result<u64, OrbitHaulError>` - The total number of shipments created.
     ///
     /// # Errors
-    /// * `LumenError::NotInitialized` - If contract is not initialized.
+    /// * `OrbitHaulError::NotInitialized` - If contract is not initialized.
     ///
     /// # Examples
     /// ```rust
     /// // let count = contract.get_shipment_counter(&env);
     /// ```
-    pub fn get_shipment_counter(env: Env) -> Result<u64, LumenError> {
+    pub fn get_shipment_counter(env: Env) -> Result<u64, OrbitHaulError> {
         require_initialized(&env)?;
         Ok(storage::get_shipment_counter(&env))
     }
@@ -1166,11 +1166,11 @@ impl LumenShipment {
     /// * `env` - Execution environment.
     ///
     /// # Returns
-    /// * `Result<Analytics, LumenError>` - Aggregated analytics data.
+    /// * `Result<Analytics, OrbitHaulError>` - Aggregated analytics data.
     ///
     /// # Errors
-    /// * `LumenError::NotInitialized` - If contract is not initialized.
-    pub fn get_analytics(env: Env) -> Result<Analytics, LumenError> {
+    /// * `OrbitHaulError::NotInitialized` - If contract is not initialized.
+    pub fn get_analytics(env: Env) -> Result<Analytics, OrbitHaulError> {
         require_initialized(&env)?;
 
         Ok(Analytics {
@@ -1192,11 +1192,11 @@ impl LumenShipment {
     /// * `env` - Execution environment.
     ///
     /// # Returns
-    /// * `Result<ShipmentStatusSummary, LumenError>` - Summary of counts for all statuses.
+    /// * `Result<ShipmentStatusSummary, OrbitHaulError>` - Summary of counts for all statuses.
     ///
     /// # Errors
-    /// * `LumenError::NotInitialized` - If contract is not initialized.
-    pub fn get_status_summary(env: Env) -> Result<ShipmentStatusSummary, LumenError> {
+    /// * `OrbitHaulError::NotInitialized` - If contract is not initialized.
+    pub fn get_status_summary(env: Env) -> Result<ShipmentStatusSummary, OrbitHaulError> {
         require_initialized(&env)?;
         Ok(ShipmentStatusSummary {
             created: storage::get_status_count(&env, &ShipmentStatus::Created),
@@ -1221,11 +1221,11 @@ impl LumenShipment {
     /// * `env` - Execution environment.
     ///
     /// # Returns
-    /// * `Result<u64, LumenError>` - Total count of active (non-terminal) shipments.
+    /// * `Result<u64, OrbitHaulError>` - Total count of active (non-terminal) shipments.
     ///
     /// # Errors
-    /// * `LumenError::NotInitialized` - If contract is not initialized.
-    pub fn get_non_terminal_count(env: Env) -> Result<u64, LumenError> {
+    /// * `OrbitHaulError::NotInitialized` - If contract is not initialized.
+    pub fn get_non_terminal_count(env: Env) -> Result<u64, OrbitHaulError> {
         require_initialized(&env)?;
         let count = storage::get_status_count(&env, &ShipmentStatus::Created)
             + storage::get_status_count(&env, &ShipmentStatus::InTransit)
@@ -1259,17 +1259,17 @@ impl LumenShipment {
     /// * `env` - Execution environment.
     ///
     /// # Returns
-    /// * `Result<BytesN<32>, LumenError>` - The SHA-256 checksum of the config.
+    /// * `Result<BytesN<32>, OrbitHaulError>` - The SHA-256 checksum of the config.
     ///
     /// # Errors
-    /// * `LumenError::NotInitialized` - If contract is not initialized.
+    /// * `OrbitHaulError::NotInitialized` - If contract is not initialized.
     ///
     /// # Examples
     /// ```rust
     /// // let checksum = contract.get_config_checksum(&env)?;
     /// // Indexer can verify: checksum == sha256(serialized_config)
     /// ```
-    pub fn get_config_checksum(env: Env) -> Result<BytesN<32>, LumenError> {
+    pub fn get_config_checksum(env: Env) -> Result<BytesN<32>, OrbitHaulError> {
         require_initialized(&env)?;
 
         // Retrieve stored checksum, or compute it if not yet stored
@@ -1350,10 +1350,10 @@ impl LumenShipment {
     /// * `carrier` - The carrier address to whitelist.
     ///
     /// # Returns
-    /// * `Result<(), LumenError>` - Ok if successfully registered.
+    /// * `Result<(), OrbitHaulError>` - Ok if successfully registered.
     ///
     /// # Errors
-    /// * `LumenError::NotInitialized` - If contract is not initialized.
+    /// * `OrbitHaulError::NotInitialized` - If contract is not initialized.
     ///
     /// # Examples
     /// ```rust
@@ -1363,7 +1363,7 @@ impl LumenShipment {
         env: Env,
         company: Address,
         carrier: Address,
-    ) -> Result<(), LumenError> {
+    ) -> Result<(), OrbitHaulError> {
         require_initialized(&env)?;
         require_not_paused(&env)?;
         company.require_auth();
@@ -1388,10 +1388,10 @@ impl LumenShipment {
     /// * `carrier` - The carrier address to be removed.
     ///
     /// # Returns
-    /// * `Result<(), LumenError>` - Ok if successfully removed.
+    /// * `Result<(), OrbitHaulError>` - Ok if successfully removed.
     ///
     /// # Errors
-    /// * `LumenError::NotInitialized` - If contract is not initialized.
+    /// * `OrbitHaulError::NotInitialized` - If contract is not initialized.
     ///
     /// # Examples
     /// ```rust
@@ -1401,7 +1401,7 @@ impl LumenShipment {
         env: Env,
         company: Address,
         carrier: Address,
-    ) -> Result<(), LumenError> {
+    ) -> Result<(), OrbitHaulError> {
         require_initialized(&env)?;
         require_not_paused(&env)?;
         company.require_auth();
@@ -1425,10 +1425,10 @@ impl LumenShipment {
     /// * `carrier` - The carrier address in question.
     ///
     /// # Returns
-    /// * `Result<bool, LumenError>` - True if the carrier is whitelisted.
+    /// * `Result<bool, OrbitHaulError>` - True if the carrier is whitelisted.
     ///
     /// # Errors
-    /// * `LumenError::NotInitialized` - If contract is not initialized.
+    /// * `OrbitHaulError::NotInitialized` - If contract is not initialized.
     ///
     /// # Examples
     /// ```rust
@@ -1438,7 +1438,7 @@ impl LumenShipment {
         env: Env,
         company: Address,
         carrier: Address,
-    ) -> Result<bool, LumenError> {
+    ) -> Result<bool, OrbitHaulError> {
         require_initialized(&env)?;
 
         Ok(storage::is_carrier_whitelisted(&env, &company, &carrier))
@@ -1452,16 +1452,16 @@ impl LumenShipment {
     /// * `address` - The address to check.
     ///
     /// # Returns
-    /// * `Result<Role, LumenError>` - The role assigned to the address.
+    /// * `Result<Role, OrbitHaulError>` - The role assigned to the address.
     ///
     /// # Errors
-    /// * `LumenError::NotInitialized` - If contract is not initialized.
+    /// * `OrbitHaulError::NotInitialized` - If contract is not initialized.
     ///
     /// # Examples
     /// ```rust
     /// // let role = contract.get_role(&env, &address);
     /// ```
-    pub fn get_role(env: Env, address: Address) -> Result<Role, LumenError> {
+    pub fn get_role(env: Env, address: Address) -> Result<Role, OrbitHaulError> {
         require_initialized(&env)?;
         Ok(storage::get_role(&env, &address).unwrap_or(Role::Unassigned))
     }
@@ -1474,17 +1474,17 @@ impl LumenShipment {
     /// * `company` - The address receiving the company role.
     ///
     /// # Returns
-    /// * `Result<(), LumenError>` - Ok on successful role assignment.
+    /// * `Result<(), OrbitHaulError>` - Ok on successful role assignment.
     ///
     /// # Errors
-    /// * `LumenError::NotInitialized` - If contract is not initialized.
-    /// * `LumenError::Unauthorized` - If called by a non-admin.
+    /// * `OrbitHaulError::NotInitialized` - If contract is not initialized.
+    /// * `OrbitHaulError::Unauthorized` - If called by a non-admin.
     ///
     /// # Examples
     /// ```rust
     /// // contract.add_company(&env, &admin, &new_company_addr);
     /// ```
-    pub fn add_company(env: Env, admin: Address, company: Address) -> Result<(), LumenError> {
+    pub fn add_company(env: Env, admin: Address, company: Address) -> Result<(), OrbitHaulError> {
         require_initialized(&env)?;
         require_not_paused(&env)?;
         admin.require_auth();
@@ -1513,17 +1513,17 @@ impl LumenShipment {
     /// * `carrier` - The address receiving the carrier role.
     ///
     /// # Returns
-    /// * `Result<(), LumenError>` - Ok on successful role assignment.
+    /// * `Result<(), OrbitHaulError>` - Ok on successful role assignment.
     ///
     /// # Errors
-    /// * `LumenError::NotInitialized` - If contract is not initialized.
-    /// * `LumenError::Unauthorized` - If called by a non-admin.
+    /// * `OrbitHaulError::NotInitialized` - If contract is not initialized.
+    /// * `OrbitHaulError::Unauthorized` - If called by a non-admin.
     ///
     /// # Examples
     /// ```rust
     /// // contract.add_carrier(&env, &admin, &new_carrier_addr);
     /// ```
-    pub fn add_carrier(env: Env, admin: Address, carrier: Address) -> Result<(), LumenError> {
+    pub fn add_carrier(env: Env, admin: Address, carrier: Address) -> Result<(), OrbitHaulError> {
         require_initialized(&env)?;
         require_not_paused(&env)?;
         admin.require_auth();
@@ -1552,14 +1552,14 @@ impl LumenShipment {
     /// * `guardian` - The address receiving the guardian role.
     ///
     /// # Returns
-    /// * `Result<(), LumenError>` - Ok on successful role assignment.
-    pub fn add_guardian(env: Env, admin: Address, guardian: Address) -> Result<(), LumenError> {
+    /// * `Result<(), OrbitHaulError>` - Ok on successful role assignment.
+    pub fn add_guardian(env: Env, admin: Address, guardian: Address) -> Result<(), OrbitHaulError> {
         require_initialized(&env)?;
         require_not_paused(&env)?;
         admin.require_auth();
 
         if storage::get_admin(&env) != admin {
-            return Err(LumenError::Unauthorized);
+            return Err(OrbitHaulError::Unauthorized);
         }
 
         storage::set_role(&env, &guardian, &Role::Guardian);
@@ -1583,14 +1583,14 @@ impl LumenShipment {
     /// * `operator` - The address receiving the operator role.
     ///
     /// # Returns
-    /// * `Result<(), LumenError>` - Ok on successful role assignment.
-    pub fn add_operator(env: Env, admin: Address, operator: Address) -> Result<(), LumenError> {
+    /// * `Result<(), OrbitHaulError>` - Ok on successful role assignment.
+    pub fn add_operator(env: Env, admin: Address, operator: Address) -> Result<(), OrbitHaulError> {
         require_initialized(&env)?;
         require_not_paused(&env)?;
         admin.require_auth();
 
         if storage::get_admin(&env) != admin {
-            return Err(LumenError::Unauthorized);
+            return Err(OrbitHaulError::Unauthorized);
         }
 
         storage::set_role(&env, &operator, &Role::Operator);
@@ -1609,7 +1609,7 @@ impl LumenShipment {
     /// Suspend a carrier from carrier-only operations.
     ///
     /// Only the admin can call this function.
-    pub fn suspend_carrier(env: Env, admin: Address, carrier: Address) -> Result<(), LumenError> {
+    pub fn suspend_carrier(env: Env, admin: Address, carrier: Address) -> Result<(), OrbitHaulError> {
         require_initialized(&env)?;
         require_not_paused(&env)?;
         admin.require_auth();
@@ -1628,7 +1628,7 @@ impl LumenShipment {
         env: Env,
         admin: Address,
         carrier: Address,
-    ) -> Result<(), LumenError> {
+    ) -> Result<(), OrbitHaulError> {
         require_initialized(&env)?;
         require_not_paused(&env)?;
         admin.require_auth();
@@ -1641,7 +1641,7 @@ impl LumenShipment {
     }
 
     /// Return whether a carrier is currently suspended.
-    pub fn is_carrier_suspended(env: Env, carrier: Address) -> Result<bool, LumenError> {
+    pub fn is_carrier_suspended(env: Env, carrier: Address) -> Result<bool, OrbitHaulError> {
         require_initialized(&env)?;
         Ok(storage::is_carrier_suspended(&env, &carrier))
     }
@@ -1657,28 +1657,28 @@ impl LumenShipment {
     /// * `target` - The address whose role is being revoked.
     ///
     /// # Returns
-    /// * `Result<(), LumenError>` - Ok on successful role revocation.
+    /// * `Result<(), OrbitHaulError>` - Ok on successful role revocation.
     ///
     /// # Errors
-    /// * `LumenError::NotInitialized` - If contract is not initialized.
-    /// * `LumenError::Unauthorized` - If called by a non-admin.
-    /// * `LumenError::CannotSelfRevoke` - If admin tries to revoke their own role.
+    /// * `OrbitHaulError::NotInitialized` - If contract is not initialized.
+    /// * `OrbitHaulError::Unauthorized` - If called by a non-admin.
+    /// * `OrbitHaulError::CannotSelfRevoke` - If admin tries to revoke their own role.
     ///
     /// # Examples
     /// ```rust
     /// // contract.revoke_role(&env, &admin, &target_addr);
     /// ```
-    pub fn revoke_role(env: Env, admin: Address, target: Address) -> Result<(), LumenError> {
+    pub fn revoke_role(env: Env, admin: Address, target: Address) -> Result<(), OrbitHaulError> {
         require_initialized(&env)?;
         require_not_paused(&env)?;
         admin.require_auth();
 
         if storage::get_admin(&env) != admin {
-            return Err(LumenError::Unauthorized);
+            return Err(OrbitHaulError::Unauthorized);
         }
 
         if admin == target {
-            return Err(LumenError::CannotSelfRevoke);
+            return Err(OrbitHaulError::CannotSelfRevoke);
         }
 
         let current_role = storage::get_role(&env, &target).unwrap_or(Role::Unassigned);
@@ -1716,34 +1716,34 @@ impl LumenShipment {
     /// * `target` - The address whose role is being suspended.
     ///
     /// # Returns
-    /// * `Result<(), LumenError>` - Ok on successful suspension.
+    /// * `Result<(), OrbitHaulError>` - Ok on successful suspension.
     ///
     /// # Errors
-    /// * `LumenError::NotInitialized` - If contract is not initialized.
-    /// * `LumenError::Unauthorized` - If called by a non-admin.
-    /// * `LumenError::CannotSelfRevoke` - If admin tries to suspend their own role.
+    /// * `OrbitHaulError::NotInitialized` - If contract is not initialized.
+    /// * `OrbitHaulError::Unauthorized` - If called by a non-admin.
+    /// * `OrbitHaulError::CannotSelfRevoke` - If admin tries to suspend their own role.
     ///
     /// # Examples
     /// ```rust
     /// // contract.suspend_role(&env, &admin, &target_addr);
     /// ```
-    pub fn suspend_role(env: Env, admin: Address, target: Address) -> Result<(), LumenError> {
+    pub fn suspend_role(env: Env, admin: Address, target: Address) -> Result<(), OrbitHaulError> {
         require_initialized(&env)?;
         require_not_paused(&env)?;
         admin.require_auth();
 
         if storage::get_admin(&env) != admin {
-            return Err(LumenError::Unauthorized);
+            return Err(OrbitHaulError::Unauthorized);
         }
 
         if admin == target {
-            return Err(LumenError::CannotSelfRevoke);
+            return Err(OrbitHaulError::CannotSelfRevoke);
         }
 
         let current_role = storage::get_role(&env, &target).unwrap_or(Role::Unassigned);
 
         if current_role == Role::Unassigned {
-            return Err(LumenError::Unauthorized);
+            return Err(OrbitHaulError::Unauthorized);
         }
 
         // Mark as suspended in storage
@@ -1772,29 +1772,29 @@ impl LumenShipment {
     /// * `target` - The address whose role is being reactivated.
     ///
     /// # Returns
-    /// * `Result<(), LumenError>` - Ok on successful reactivation.
+    /// * `Result<(), OrbitHaulError>` - Ok on successful reactivation.
     ///
     /// # Errors
-    /// * `LumenError::NotInitialized` - If contract is not initialized.
-    /// * `LumenError::Unauthorized` - If called by a non-admin or target not suspended.
+    /// * `OrbitHaulError::NotInitialized` - If contract is not initialized.
+    /// * `OrbitHaulError::Unauthorized` - If called by a non-admin or target not suspended.
     ///
     /// # Examples
     /// ```rust
     /// // contract.reactivate_role(&env, &admin, &target_addr);
     /// ```
-    pub fn reactivate_role(env: Env, admin: Address, target: Address) -> Result<(), LumenError> {
+    pub fn reactivate_role(env: Env, admin: Address, target: Address) -> Result<(), OrbitHaulError> {
         require_initialized(&env)?;
         require_not_paused(&env)?;
         admin.require_auth();
 
         if storage::get_admin(&env) != admin {
-            return Err(LumenError::Unauthorized);
+            return Err(OrbitHaulError::Unauthorized);
         }
 
         let current_role = storage::get_role(&env, &target).unwrap_or(Role::Unassigned);
 
         if current_role == Role::Unassigned {
-            return Err(LumenError::Unauthorized);
+            return Err(OrbitHaulError::Unauthorized);
         }
 
         // Reactivate the role
@@ -1813,7 +1813,7 @@ impl LumenShipment {
     }
 
     /// Suspend a company from creating or updating shipments.
-    pub fn suspend_company(env: Env, admin: Address, company: Address) -> Result<(), LumenError> {
+    pub fn suspend_company(env: Env, admin: Address, company: Address) -> Result<(), OrbitHaulError> {
         require_initialized(&env)?;
         require_not_paused(&env)?;
         admin.require_auth();
@@ -1821,7 +1821,7 @@ impl LumenShipment {
         require_admin_or_operator(&env, &admin)?;
 
         if !storage::has_company_role(&env, &company) {
-            return Err(LumenError::Unauthorized);
+            return Err(OrbitHaulError::Unauthorized);
         }
 
         storage::suspend_company(&env, &company);
@@ -1843,7 +1843,7 @@ impl LumenShipment {
         env: Env,
         admin: Address,
         company: Address,
-    ) -> Result<(), LumenError> {
+    ) -> Result<(), OrbitHaulError> {
         require_initialized(&env)?;
         require_not_paused(&env)?;
         admin.require_auth();
@@ -1876,15 +1876,15 @@ impl LumenShipment {
     /// * `deadline` - Timestamp after which shipment is considered expired and can be auto-cancelled.
     ///
     /// # Returns
-    /// * `Result<u64, LumenError>` - Newly created shipment ID.
+    /// * `Result<u64, OrbitHaulError>` - Newly created shipment ID.
     ///
     /// # Errors
-    /// * `LumenError::NotInitialized` - If contract is not initialized.
-    /// * `LumenError::Unauthorized` - If caller isn't a Company.
-    /// * `LumenError::InvalidHash` - If data_hash is all zeros.
-    /// * `LumenError::MilestoneSumInvalid` - If milestone percentages do not equal 100%.
-    /// * `LumenError::CounterOverflow` - If total shipment count overflows max u64.
-    /// * `LumenError::InvalidTimestamp` - If the deadline is not strictly in the future.
+    /// * `OrbitHaulError::NotInitialized` - If contract is not initialized.
+    /// * `OrbitHaulError::Unauthorized` - If caller isn't a Company.
+    /// * `OrbitHaulError::InvalidHash` - If data_hash is all zeros.
+    /// * `OrbitHaulError::MilestoneSumInvalid` - If milestone percentages do not equal 100%.
+    /// * `OrbitHaulError::CounterOverflow` - If total shipment count overflows max u64.
+    /// * `OrbitHaulError::InvalidTimestamp` - If the deadline is not strictly in the future.
     ///
     /// # Examples
     ///
@@ -1920,7 +1920,7 @@ impl LumenShipment {
         data_hash: BytesN<32>,
         payment_milestones: Vec<(Symbol, u32)>,
         deadline: u64,
-    ) -> Result<u64, LumenError> {
+    ) -> Result<u64, OrbitHaulError> {
         require_initialized(&env)?;
         require_not_paused(&env)?;
         sender.require_auth();
@@ -1936,14 +1936,14 @@ impl LumenShipment {
 
         let now = env.ledger().timestamp();
         if deadline <= now {
-            return Err(LumenError::InvalidTimestamp);
+            return Err(OrbitHaulError::InvalidTimestamp);
         }
 
         // Check company active shipment limit
         let current_active = storage::get_active_shipment_count(&env, &sender);
         let limit = storage::get_effective_shipment_limit(&env, &sender);
         if current_active >= limit {
-            return Err(LumenError::ShipmentLimitReached);
+            return Err(OrbitHaulError::ShipmentLimitReached);
         }
 
         // Check per-company creation quota window (issue #296).
@@ -1951,7 +1951,7 @@ impl LumenShipment {
 
         let shipment_id = storage::get_shipment_counter(&env)
             .checked_add(1)
-            .ok_or(LumenError::CounterOverflow)?;
+            .ok_or(OrbitHaulError::CounterOverflow)?;
 
         let shipment = Shipment {
             id: shipment_id,
@@ -2010,16 +2010,16 @@ impl LumenShipment {
     /// * `shipments` - Vector of shipment inputs.
     ///
     /// # Returns
-    /// * `Result<Vec<u64>, LumenError>` - Vector of newly created shipment IDs.
+    /// * `Result<Vec<u64>, OrbitHaulError>` - Vector of newly created shipment IDs.
     ///
     /// # Errors
-    /// * `LumenError::NotInitialized` - If contract is not initialized.
-    /// * `LumenError::Unauthorized` - If caller isn't a Company.
-    /// * `LumenError::BatchTooLarge` - If more than 10 shipments are submitted.
-    /// * `LumenError::InvalidShipmentInput` - If receiver matches carrier for any shipment.
-    /// * `LumenError::InvalidHash` - If any data_hash is all zeros.
-    /// * `LumenError::MilestoneSumInvalid` - If payment milestones are invalid per item.
-    /// * `LumenError::InvalidTimestamp` - If the deadline is not strictly in the future.
+    /// * `OrbitHaulError::NotInitialized` - If contract is not initialized.
+    /// * `OrbitHaulError::Unauthorized` - If caller isn't a Company.
+    /// * `OrbitHaulError::BatchTooLarge` - If more than 10 shipments are submitted.
+    /// * `OrbitHaulError::InvalidShipmentInput` - If receiver matches carrier for any shipment.
+    /// * `OrbitHaulError::InvalidHash` - If any data_hash is all zeros.
+    /// * `OrbitHaulError::MilestoneSumInvalid` - If payment milestones are invalid per item.
+    /// * `OrbitHaulError::InvalidTimestamp` - If the deadline is not strictly in the future.
     ///
     /// # Examples
     /// ```rust
@@ -2029,7 +2029,7 @@ impl LumenShipment {
         env: Env,
         sender: Address,
         shipments: Vec<ShipmentInput>,
-    ) -> Result<Vec<u64>, LumenError> {
+    ) -> Result<Vec<u64>, OrbitHaulError> {
         require_initialized(&env)?;
         require_not_paused(&env)?;
         sender.require_auth();
@@ -2037,7 +2037,7 @@ impl LumenShipment {
 
         let config = config::get_config(&env);
         if shipments.len() > config.batch_operation_limit {
-            return Err(LumenError::BatchTooLarge);
+            return Err(OrbitHaulError::BatchTooLarge);
         }
 
         let mut ids = Vec::new(&env);
@@ -2047,7 +2047,7 @@ impl LumenShipment {
         let current_active = storage::get_active_shipment_count(&env, &sender);
         let limit = storage::get_effective_shipment_limit(&env, &sender);
         if current_active.saturating_add(shipments.len()) > limit {
-            return Err(LumenError::ShipmentLimitReached);
+            return Err(OrbitHaulError::ShipmentLimitReached);
         }
 
         // Check per-company creation quota window for the entire batch (issue #296).
@@ -2070,9 +2070,9 @@ impl LumenShipment {
                 let new_count = tracker
                     .count
                     .checked_add(batch_len)
-                    .ok_or(LumenError::CounterOverflow)?;
+                    .ok_or(OrbitHaulError::CounterOverflow)?;
                 if new_count > cfg.creation_quota_max {
-                    return Err(LumenError::CreationQuotaExceeded);
+                    return Err(OrbitHaulError::CreationQuotaExceeded);
                 }
                 tracker.count = new_count;
                 storage::set_creation_quota(&env, &sender, &tracker);
@@ -2081,18 +2081,18 @@ impl LumenShipment {
 
         for shipment_input in shipments.iter() {
             if shipment_input.receiver == shipment_input.carrier {
-                return Err(LumenError::InvalidShipmentInput);
+                return Err(OrbitHaulError::InvalidShipmentInput);
             }
             validate_milestones(&env, &shipment_input.payment_milestones)?;
             validate_hash(&shipment_input.data_hash)?;
 
             if shipment_input.deadline <= now {
-                return Err(LumenError::InvalidTimestamp);
+                return Err(OrbitHaulError::InvalidTimestamp);
             }
 
             let shipment_id = storage::get_shipment_counter(&env)
                 .checked_add(1)
-                .ok_or(LumenError::CounterOverflow)?;
+                .ok_or(OrbitHaulError::CounterOverflow)?;
 
             let shipment = Shipment {
                 id: shipment_id,
@@ -2163,19 +2163,19 @@ impl LumenShipment {
     /// * `shipment_id` - ID of the shipment to fetch.
     ///
     /// # Returns
-    /// * `Result<Shipment, LumenError>` - Reconstructed shipment struct.
+    /// * `Result<Shipment, OrbitHaulError>` - Reconstructed shipment struct.
     ///
     /// # Errors
-    /// * `LumenError::NotInitialized` - If contract is not initialized.
-    /// * `LumenError::ShipmentNotFound` - If shipment does not exist.
+    /// * `OrbitHaulError::NotInitialized` - If contract is not initialized.
+    /// * `OrbitHaulError::ShipmentNotFound` - If shipment does not exist.
     ///
     /// # Examples
     /// ```rust
     /// // let shipment = contract.get_shipment(&env, 1);
     /// ```
-    pub fn get_shipment(env: Env, shipment_id: u64) -> Result<Shipment, LumenError> {
+    pub fn get_shipment(env: Env, shipment_id: u64) -> Result<Shipment, OrbitHaulError> {
         require_initialized(&env)?;
-        storage::get_shipment(&env, shipment_id).ok_or(LumenError::ShipmentNotFound)
+        storage::get_shipment(&env, shipment_id).ok_or(OrbitHaulError::ShipmentNotFound)
     }
 
     /// Retrieve the immutable creator identity for a shipment.
@@ -2185,15 +2185,15 @@ impl LumenShipment {
     /// * `shipment_id` - ID of the shipment.
     ///
     /// # Returns
-    /// * `Result<Address, LumenError>` - Address that originally created the shipment.
+    /// * `Result<Address, OrbitHaulError>` - Address that originally created the shipment.
     ///
     /// # Errors
-    /// * `LumenError::NotInitialized` - If contract is not initialized.
-    /// * `LumenError::ShipmentNotFound` - If shipment does not exist.
-    pub fn get_shipment_creator(env: Env, shipment_id: u64) -> Result<Address, LumenError> {
+    /// * `OrbitHaulError::NotInitialized` - If contract is not initialized.
+    /// * `OrbitHaulError::ShipmentNotFound` - If shipment does not exist.
+    pub fn get_shipment_creator(env: Env, shipment_id: u64) -> Result<Address, OrbitHaulError> {
         require_initialized(&env)?;
         let shipment =
-            storage::get_shipment(&env, shipment_id).ok_or(LumenError::ShipmentNotFound)?;
+            storage::get_shipment(&env, shipment_id).ok_or(OrbitHaulError::ShipmentNotFound)?;
         Ok(shipment.sender)
     }
 
@@ -2204,15 +2204,15 @@ impl LumenShipment {
     /// * `shipment_id` - ID of the shipment.
     ///
     /// # Returns
-    /// * `Result<Address, LumenError>` - Address designated as shipment receiver at creation.
+    /// * `Result<Address, OrbitHaulError>` - Address designated as shipment receiver at creation.
     ///
     /// # Errors
-    /// * `LumenError::NotInitialized` - If contract is not initialized.
-    /// * `LumenError::ShipmentNotFound` - If shipment does not exist.
-    pub fn get_shipment_receiver(env: Env, shipment_id: u64) -> Result<Address, LumenError> {
+    /// * `OrbitHaulError::NotInitialized` - If contract is not initialized.
+    /// * `OrbitHaulError::ShipmentNotFound` - If shipment does not exist.
+    pub fn get_shipment_receiver(env: Env, shipment_id: u64) -> Result<Address, OrbitHaulError> {
         require_initialized(&env)?;
         let shipment =
-            storage::get_shipment(&env, shipment_id).ok_or(LumenError::ShipmentNotFound)?;
+            storage::get_shipment(&env, shipment_id).ok_or(OrbitHaulError::ShipmentNotFound)?;
         Ok(shipment.receiver)
     }
 
@@ -2224,24 +2224,24 @@ impl LumenShipment {
     /// * `shipment_id` - ID of the shipment.
     ///
     /// # Returns
-    /// * `Result<u64, LumenError>` - Ledger timestamp of creation.
-    pub fn get_shipment_created_at(env: Env, shipment_id: u64) -> Result<u64, LumenError> {
+    /// * `Result<u64, OrbitHaulError>` - Ledger timestamp of creation.
+    pub fn get_shipment_created_at(env: Env, shipment_id: u64) -> Result<u64, OrbitHaulError> {
         require_initialized(&env)?;
         let shipment =
-            storage::get_shipment(&env, shipment_id).ok_or(LumenError::ShipmentNotFound)?;
+            storage::get_shipment(&env, shipment_id).ok_or(OrbitHaulError::ShipmentNotFound)?;
         Ok(shipment.created_at)
     }
 
     /// Retrieve the last update timestamp for a shipment.
-    /// * `Result<Address, LumenError>` - Address that originally created the shipment.
+    /// * `Result<Address, OrbitHaulError>` - Address that originally created the shipment.
     ///
     /// # Errors
-    /// * `LumenError::NotInitialized` - If contract is not initialized.
-    /// * `LumenError::ShipmentNotFound` - If shipment does not exist.
-    pub fn get_shipment_sender(env: Env, shipment_id: u64) -> Result<Address, LumenError> {
+    /// * `OrbitHaulError::NotInitialized` - If contract is not initialized.
+    /// * `OrbitHaulError::ShipmentNotFound` - If shipment does not exist.
+    pub fn get_shipment_sender(env: Env, shipment_id: u64) -> Result<Address, OrbitHaulError> {
         require_initialized(&env)?;
         let shipment =
-            storage::get_shipment(&env, shipment_id).ok_or(LumenError::ShipmentNotFound)?;
+            storage::get_shipment(&env, shipment_id).ok_or(OrbitHaulError::ShipmentNotFound)?;
         Ok(shipment.sender)
     }
 
@@ -2252,23 +2252,23 @@ impl LumenShipment {
     /// * `shipment_id` - ID of the shipment.
     ///
     /// # Returns
-    /// * `Result<u64, LumenError>` - Ledger timestamp of the last update.
-    pub fn get_shipment_updated_at(env: Env, shipment_id: u64) -> Result<u64, LumenError> {
+    /// * `Result<u64, OrbitHaulError>` - Ledger timestamp of the last update.
+    pub fn get_shipment_updated_at(env: Env, shipment_id: u64) -> Result<u64, OrbitHaulError> {
         require_initialized(&env)?;
         let shipment =
-            storage::get_shipment(&env, shipment_id).ok_or(LumenError::ShipmentNotFound)?;
+            storage::get_shipment(&env, shipment_id).ok_or(OrbitHaulError::ShipmentNotFound)?;
         Ok(shipment.updated_at)
     }
 
-    /// * `Result<Address, LumenError>` - Address designated as shipment carrier at creation.
+    /// * `Result<Address, OrbitHaulError>` - Address designated as shipment carrier at creation.
     ///
     /// # Errors
-    /// * `LumenError::NotInitialized` - If contract is not initialized.
-    /// * `LumenError::ShipmentNotFound` - If shipment does not exist.
-    pub fn get_shipment_carrier(env: Env, shipment_id: u64) -> Result<Address, LumenError> {
+    /// * `OrbitHaulError::NotInitialized` - If contract is not initialized.
+    /// * `OrbitHaulError::ShipmentNotFound` - If shipment does not exist.
+    pub fn get_shipment_carrier(env: Env, shipment_id: u64) -> Result<Address, OrbitHaulError> {
         require_initialized(&env)?;
         let shipment =
-            storage::get_shipment(&env, shipment_id).ok_or(LumenError::ShipmentNotFound)?;
+            storage::get_shipment(&env, shipment_id).ok_or(OrbitHaulError::ShipmentNotFound)?;
         Ok(shipment.carrier)
     }
 
@@ -2279,7 +2279,7 @@ impl LumenShipment {
     pub fn get_restore_diagnostics(
         env: Env,
         shipment_id: u64,
-    ) -> Result<PersistentRestoreDiagnostics, LumenError> {
+    ) -> Result<PersistentRestoreDiagnostics, OrbitHaulError> {
         require_initialized(&env)?;
 
         let persistent_shipment_present = storage::has_persistent_shipment(&env, shipment_id);
@@ -2317,15 +2317,15 @@ impl LumenShipment {
     /// * `amount` - Balance of tokens deposited into escrow.
     ///
     /// # Returns
-    /// * `Result<(), LumenError>` - Ok on successful deposit.
+    /// * `Result<(), OrbitHaulError>` - Ok on successful deposit.
     ///
     /// # Errors
-    /// * `LumenError::NotInitialized` - If contract is not initialized.
-    /// * `LumenError::Unauthorized` - If caller isn't a Company.
-    /// * `LumenError::InvalidAmount` - If amount is zero, negative, or exceeds the maximum.
-    /// * `LumenError::ShipmentNotFound` - If shipment is untracked.
-    /// * `LumenError::InvalidStatus` - If shipment is not in `Created` status.
-    /// * `LumenError::EscrowLocked` - If escrow is already deposited for shipment.
+    /// * `OrbitHaulError::NotInitialized` - If contract is not initialized.
+    /// * `OrbitHaulError::Unauthorized` - If caller isn't a Company.
+    /// * `OrbitHaulError::InvalidAmount` - If amount is zero, negative, or exceeds the maximum.
+    /// * `OrbitHaulError::ShipmentNotFound` - If shipment is untracked.
+    /// * `OrbitHaulError::InvalidStatus` - If shipment is not in `Created` status.
+    /// * `OrbitHaulError::EscrowLocked` - If escrow is already deposited for shipment.
     ///
     /// # Examples
     ///
@@ -2356,7 +2356,7 @@ impl LumenShipment {
         from: Address,
         shipment_id: u64,
         amount: i128,
-    ) -> Result<(), LumenError> {
+    ) -> Result<(), OrbitHaulError> {
         require_initialized(&env)?;
         require_not_paused(&env)?;
         from.require_auth();
@@ -2366,21 +2366,21 @@ impl LumenShipment {
             validation::validate_positive_amount(amount)?;
 
             let mut shipment =
-                storage::get_shipment(&env, shipment_id).ok_or(LumenError::ShipmentNotFound)?;
+                storage::get_shipment(&env, shipment_id).ok_or(OrbitHaulError::ShipmentNotFound)?;
 
             require_not_finalized(&shipment)?;
 
             if shipment.status != ShipmentStatus::Created {
-                return Err(LumenError::InvalidStatus);
+                return Err(OrbitHaulError::InvalidStatus);
             }
 
             if shipment.escrow_amount > 0 {
-                return Err(LumenError::EscrowLocked);
+                return Err(OrbitHaulError::EscrowLocked);
             }
 
             // Get token contract address
             let token_contract =
-                storage::get_token_contract(&env).ok_or(LumenError::NotInitialized)?;
+                storage::get_token_contract(&env).ok_or(OrbitHaulError::NotInitialized)?;
 
             // Validate that the token uses 7 decimal places (Stellar standard).
             // This prevents silent amount mismatches for non-standard tokens.
@@ -2462,16 +2462,16 @@ impl LumenShipment {
     /// * `data_hash` - The off-chain data hash tracking context for update.
     ///
     /// # Returns
-    /// * `Result<(), LumenError>` - Ok on valid transition.
+    /// * `Result<(), OrbitHaulError>` - Ok on valid transition.
     ///
     /// # Errors
-    /// * `LumenError::NotInitialized` - If contract is not initialized.
-    /// * `LumenError::ShipmentNotFound` - If shipment doesn't exist.
-    /// * `LumenError::Unauthorized` - If caller is neither the carrier nor admin.
-    /// * `LumenError::InvalidHash` - If data_hash is all zeros.
-    /// * `LumenError::CarrierSuspended` - If the assigned carrier is suspended.
-    /// * `LumenError::RateLimitExceeded` - If status was updated too recently (unless Admin).
-    /// * `LumenError::InvalidStatus` - If transitioning to an improperly sequenced state.
+    /// * `OrbitHaulError::NotInitialized` - If contract is not initialized.
+    /// * `OrbitHaulError::ShipmentNotFound` - If shipment doesn't exist.
+    /// * `OrbitHaulError::Unauthorized` - If caller is neither the carrier nor admin.
+    /// * `OrbitHaulError::InvalidHash` - If data_hash is all zeros.
+    /// * `OrbitHaulError::CarrierSuspended` - If the assigned carrier is suspended.
+    /// * `OrbitHaulError::RateLimitExceeded` - If status was updated too recently (unless Admin).
+    /// * `OrbitHaulError::InvalidStatus` - If transitioning to an improperly sequenced state.
     ///
     /// # Examples
     /// ```rust
@@ -2505,7 +2505,7 @@ impl LumenShipment {
         shipment_id: u64,
         new_status: ShipmentStatus,
         data_hash: BytesN<32>,
-    ) -> Result<(), LumenError> {
+    ) -> Result<(), OrbitHaulError> {
         require_initialized(&env)?;
         require_not_paused(&env)?;
         caller.require_auth();
@@ -2515,10 +2515,10 @@ impl LumenShipment {
 
         let admin = storage::get_admin(&env);
         let mut shipment =
-            storage::get_shipment(&env, shipment_id).ok_or(LumenError::ShipmentNotFound)?;
+            storage::get_shipment(&env, shipment_id).ok_or(OrbitHaulError::ShipmentNotFound)?;
 
         if caller != shipment.carrier && caller != admin {
-            return Err(LumenError::Unauthorized);
+            return Err(OrbitHaulError::Unauthorized);
         }
         require_not_finalized(&shipment)?;
         if caller == shipment.carrier {
@@ -2541,7 +2541,7 @@ impl LumenShipment {
                 let now = env.ledger().timestamp();
                 let config = config::get_config(&env);
                 if now.saturating_sub(last) < config.min_status_update_interval {
-                    return Err(LumenError::RateLimitExceeded);
+                    return Err(OrbitHaulError::RateLimitExceeded);
                 }
             }
         }
@@ -2598,20 +2598,20 @@ impl LumenShipment {
     /// * `shipment_id` - ID of the shipment.
     ///
     /// # Returns
-    /// * `Result<i128, LumenError>` - Amount stored in escrow.
+    /// * `Result<i128, OrbitHaulError>` - Amount stored in escrow.
     ///
     /// # Errors
-    /// * `LumenError::NotInitialized` - If contract is not initialized.
-    /// * `LumenError::ShipmentNotFound` - If shipment does not exist.
+    /// * `OrbitHaulError::NotInitialized` - If contract is not initialized.
+    /// * `OrbitHaulError::ShipmentNotFound` - If shipment does not exist.
     ///
     /// # Examples
     /// ```rust
     /// // let balance = contract.get_escrow_balance(&env, 1);
     /// ```
-    pub fn get_escrow_balance(env: Env, shipment_id: u64) -> Result<i128, LumenError> {
+    pub fn get_escrow_balance(env: Env, shipment_id: u64) -> Result<i128, OrbitHaulError> {
         require_initialized(&env)?;
         if storage::get_shipment(&env, shipment_id).is_none() {
-            return Err(LumenError::ShipmentNotFound);
+            return Err(OrbitHaulError::ShipmentNotFound);
         }
         Ok(storage::get_escrow_balance(&env, shipment_id))
     }
@@ -2623,14 +2623,14 @@ impl LumenShipment {
     /// * `shipment_id` - ID of the shipment.
     ///
     /// # Returns
-    /// * `Result<Option<EscrowFreezeReason>, LumenError>` - Latest freeze reason code.
+    /// * `Result<Option<EscrowFreezeReason>, OrbitHaulError>` - Latest freeze reason code.
     pub fn get_escrow_freeze_reason(
         env: Env,
         shipment_id: u64,
-    ) -> Result<Option<EscrowFreezeReason>, LumenError> {
+    ) -> Result<Option<EscrowFreezeReason>, OrbitHaulError> {
         require_initialized(&env)?;
         if storage::get_shipment(&env, shipment_id).is_none() {
-            return Err(LumenError::ShipmentNotFound);
+            return Err(OrbitHaulError::ShipmentNotFound);
         }
         Ok(storage::get_escrow_freeze_reason(&env, shipment_id))
     }
@@ -2642,19 +2642,19 @@ impl LumenShipment {
     /// * `settlement_id` - The ID of the settlement.
     ///
     /// # Returns
-    /// * `Result<SettlementRecord, LumenError>` - The settlement record.
+    /// * `Result<SettlementRecord, OrbitHaulError>` - The settlement record.
     ///
     /// # Errors
-    /// * `LumenError::NotInitialized` - If contract is not initialized.
-    /// * `LumenError::ShipmentNotFound` - If settlement doesn't exist (reusing error).
+    /// * `OrbitHaulError::NotInitialized` - If contract is not initialized.
+    /// * `OrbitHaulError::ShipmentNotFound` - If settlement doesn't exist (reusing error).
     ///
     /// # Examples
     /// ```rust
     /// // let settlement = contract.get_settlement(&env, 1);
     /// ```
-    pub fn get_settlement(env: Env, settlement_id: u64) -> Result<SettlementRecord, LumenError> {
+    pub fn get_settlement(env: Env, settlement_id: u64) -> Result<SettlementRecord, OrbitHaulError> {
         require_initialized(&env)?;
-        storage::get_settlement(&env, settlement_id).ok_or(LumenError::ShipmentNotFound)
+        storage::get_settlement(&env, settlement_id).ok_or(OrbitHaulError::ShipmentNotFound)
     }
 
     /// Get the active settlement ID for a shipment.
@@ -2664,16 +2664,16 @@ impl LumenShipment {
     /// * `shipment_id` - The ID of the shipment.
     ///
     /// # Returns
-    /// * `Result<Option<u64>, LumenError>` - The active settlement ID if one exists.
+    /// * `Result<Option<u64>, OrbitHaulError>` - The active settlement ID if one exists.
     ///
     /// # Errors
-    /// * `LumenError::NotInitialized` - If contract is not initialized.
+    /// * `OrbitHaulError::NotInitialized` - If contract is not initialized.
     ///
     /// # Examples
     /// ```rust
     /// // let active_id = contract.get_active_settlement(&env, 1);
     /// ```
-    pub fn get_active_settlement(env: Env, shipment_id: u64) -> Result<Option<u64>, LumenError> {
+    pub fn get_active_settlement(env: Env, shipment_id: u64) -> Result<Option<u64>, OrbitHaulError> {
         require_initialized(&env)?;
         Ok(storage::get_active_settlement(&env, shipment_id))
     }
@@ -2717,12 +2717,12 @@ impl LumenShipment {
     pub fn get_shipments_batch(
         env: Env,
         shipment_ids: Vec<u64>,
-    ) -> Result<Vec<Option<Shipment>>, LumenError> {
+    ) -> Result<Vec<Option<Shipment>>, OrbitHaulError> {
         require_initialized(&env)?;
 
         let max_batch = effective_batch_query_limit(&env);
         if shipment_ids.len() > max_batch {
-            return Err(LumenError::BatchTooLarge);
+            return Err(OrbitHaulError::BatchTooLarge);
         }
 
         let mut results = Vec::new(&env);
@@ -2738,7 +2738,7 @@ impl LumenShipment {
         env: Env,
         sender: Address,
         limit: u32,
-    ) -> Result<Vec<Shipment>, LumenError> {
+    ) -> Result<Vec<Shipment>, OrbitHaulError> {
         Self::get_shipments_by_sender_page(env, sender, 0, limit)
     }
 
@@ -2748,11 +2748,11 @@ impl LumenShipment {
         sender: Address,
         offset: u32,
         limit: u32,
-    ) -> Result<Vec<Shipment>, LumenError> {
+    ) -> Result<Vec<Shipment>, OrbitHaulError> {
         require_initialized(&env)?;
         let max_batch = effective_batch_query_limit(&env);
         if limit == 0 || limit > max_batch {
-            return Err(LumenError::InvalidConfig);
+            return Err(OrbitHaulError::InvalidConfig);
         }
 
         let mut matched = Vec::new(&env);
@@ -2785,7 +2785,7 @@ impl LumenShipment {
         env: Env,
         carrier: Address,
         limit: u32,
-    ) -> Result<Vec<Shipment>, LumenError> {
+    ) -> Result<Vec<Shipment>, OrbitHaulError> {
         Self::get_shipments_by_carrier_page(env, carrier, 0, limit)
     }
 
@@ -2795,11 +2795,11 @@ impl LumenShipment {
         carrier: Address,
         offset: u32,
         limit: u32,
-    ) -> Result<Vec<Shipment>, LumenError> {
+    ) -> Result<Vec<Shipment>, OrbitHaulError> {
         require_initialized(&env)?;
         let max_batch = effective_batch_query_limit(&env);
         if limit == 0 || limit > max_batch {
-            return Err(LumenError::InvalidConfig);
+            return Err(OrbitHaulError::InvalidConfig);
         }
 
         let mut matched = Vec::new(&env);
@@ -2832,7 +2832,7 @@ impl LumenShipment {
         env: Env,
         status: ShipmentStatus,
         limit: u32,
-    ) -> Result<Vec<Shipment>, LumenError> {
+    ) -> Result<Vec<Shipment>, OrbitHaulError> {
         Self::get_shipments_by_status_page(env, status, 0, limit)
     }
 
@@ -2842,11 +2842,11 @@ impl LumenShipment {
         status: ShipmentStatus,
         offset: u32,
         limit: u32,
-    ) -> Result<Vec<Shipment>, LumenError> {
+    ) -> Result<Vec<Shipment>, OrbitHaulError> {
         require_initialized(&env)?;
         let max_batch = effective_batch_query_limit(&env);
         if limit == 0 || limit > max_batch {
-            return Err(LumenError::InvalidConfig);
+            return Err(OrbitHaulError::InvalidConfig);
         }
 
         let mut matched = Vec::new(&env);
@@ -2883,12 +2883,12 @@ impl LumenShipment {
         status: ShipmentStatus,
         cursor: Option<u64>,
         page_size: u32,
-    ) -> Result<ShipmentStatusCursorPage, LumenError> {
+    ) -> Result<ShipmentStatusCursorPage, OrbitHaulError> {
         require_initialized(&env)?;
 
         let config = config::get_config(&env);
         if page_size == 0 || page_size > config.batch_operation_limit {
-            return Err(LumenError::InvalidConfig);
+            return Err(OrbitHaulError::InvalidConfig);
         }
 
         let mut shipment_ids = Vec::new(&env);
@@ -2927,21 +2927,21 @@ impl LumenShipment {
     /// * `shipment_id` - ID of the shipment.
     ///
     /// # Returns
-    /// * `Result<u32, LumenError>` - The number of events emitted for this shipment.
+    /// * `Result<u32, OrbitHaulError>` - The number of events emitted for this shipment.
     ///
     /// # Errors
-    /// * `LumenError::NotInitialized` - If contract is not initialized.
-    /// * `LumenError::ShipmentNotFound` - If shipment does not exist.
+    /// * `OrbitHaulError::NotInitialized` - If contract is not initialized.
+    /// * `OrbitHaulError::ShipmentNotFound` - If shipment does not exist.
     ///
     /// # Examples
     /// ```rust
     /// // let event_count = contract.get_event_count(&env, 1);
     /// ```
-    pub fn get_event_count(env: Env, shipment_id: u64) -> Result<u32, LumenError> {
+    pub fn get_event_count(env: Env, shipment_id: u64) -> Result<u32, OrbitHaulError> {
         require_initialized(&env)?;
         // Verify shipment exists
         if storage::get_shipment(&env, shipment_id).is_none() {
-            return Err(LumenError::ShipmentNotFound);
+            return Err(OrbitHaulError::ShipmentNotFound);
         }
         Ok(storage::get_event_count(&env, shipment_id))
     }
@@ -2956,34 +2956,34 @@ impl LumenShipment {
     /// * `shipment_id` - ID of the shipment to archive.
     ///
     /// # Returns
-    /// * `Result<(), LumenError>` - Ok if successfully archived.
+    /// * `Result<(), OrbitHaulError>` - Ok if successfully archived.
     ///
     /// # Errors
-    /// * `LumenError::NotInitialized` - If contract is not initialized.
-    /// * `LumenError::Unauthorized` - If caller is not the admin.
-    /// * `LumenError::ShipmentNotFound` - If shipment does not exist.
-    /// * `LumenError::InvalidStatus` - If shipment is not in a terminal state (Delivered or Cancelled).
+    /// * `OrbitHaulError::NotInitialized` - If contract is not initialized.
+    /// * `OrbitHaulError::Unauthorized` - If caller is not the admin.
+    /// * `OrbitHaulError::ShipmentNotFound` - If shipment does not exist.
+    /// * `OrbitHaulError::InvalidStatus` - If shipment is not in a terminal state (Delivered or Cancelled).
     ///
     /// # Examples
     /// ```rust
     /// // contract.archive_shipment(&env, &admin, 1);
     /// ```
-    pub fn archive_shipment(env: Env, admin: Address, shipment_id: u64) -> Result<(), LumenError> {
+    pub fn archive_shipment(env: Env, admin: Address, shipment_id: u64) -> Result<(), OrbitHaulError> {
         require_initialized(&env)?;
         admin.require_auth();
 
         if storage::get_admin(&env) != admin {
-            return Err(LumenError::Unauthorized);
+            return Err(OrbitHaulError::Unauthorized);
         }
 
         let shipment = storage::get_persistent_shipment(&env, shipment_id)
-            .ok_or(LumenError::ShipmentNotFound)?;
+            .ok_or(OrbitHaulError::ShipmentNotFound)?;
 
         // Only allow archiving terminal state shipments
         if shipment.status != ShipmentStatus::Delivered
             && shipment.status != ShipmentStatus::Cancelled
         {
-            return Err(LumenError::InvalidStatus);
+            return Err(OrbitHaulError::InvalidStatus);
         }
 
         // Archive the shipment (move from persistent to temporary storage)
@@ -3008,14 +3008,14 @@ impl LumenShipment {
     /// * `confirmation_hash` - The proof-of-delivery hash.
     ///
     /// # Returns
-    /// * `Result<(), LumenError>` - Ok on successful confirmation.
+    /// * `Result<(), OrbitHaulError>` - Ok on successful confirmation.
     ///
     /// # Errors
-    /// * `LumenError::NotInitialized` - If contract is not initialized.
-    /// * `LumenError::ShipmentNotFound` - If shipment does not exist.
-    /// * `LumenError::Unauthorized` - If called by an address other than the shipment receiver.
-    /// * `LumenError::InvalidHash` - If confirmation_hash is all zeros.
-    /// * `LumenError::InvalidStatus` - If shipment is not in a transitable status to Delivered.
+    /// * `OrbitHaulError::NotInitialized` - If contract is not initialized.
+    /// * `OrbitHaulError::ShipmentNotFound` - If shipment does not exist.
+    /// * `OrbitHaulError::Unauthorized` - If called by an address other than the shipment receiver.
+    /// * `OrbitHaulError::InvalidHash` - If confirmation_hash is all zeros.
+    /// * `OrbitHaulError::InvalidStatus` - If shipment is not in a transitable status to Delivered.
     ///
     /// # Examples
     /// ```rust
@@ -3049,7 +3049,7 @@ impl LumenShipment {
         receiver: Address,
         shipment_id: u64,
         confirmation_hash: BytesN<32>,
-    ) -> Result<(), LumenError> {
+    ) -> Result<(), OrbitHaulError> {
         require_initialized(&env)?;
         require_not_paused(&env)?;
         receiver.require_auth();
@@ -3058,11 +3058,11 @@ impl LumenShipment {
         validation::validate_hash(&confirmation_hash)?;
 
         let mut shipment =
-            storage::get_shipment(&env, shipment_id).ok_or(LumenError::ShipmentNotFound)?;
+            storage::get_shipment(&env, shipment_id).ok_or(OrbitHaulError::ShipmentNotFound)?;
 
         // Only the designated receiver can confirm delivery
         if shipment.receiver != receiver {
-            return Err(LumenError::Unauthorized);
+            return Err(OrbitHaulError::Unauthorized);
         }
         require_not_finalized(&shipment)?;
 
@@ -3146,15 +3146,15 @@ impl LumenShipment {
     /// * `release_percent` - Percentage of total escrow to release (1-100).
     ///
     /// # Returns
-    /// * `Result<(), LumenError>` - Ok on successful partial confirmation.
+    /// * `Result<(), OrbitHaulError>` - Ok on successful partial confirmation.
     ///
     /// # Errors
-    /// * `LumenError::NotInitialized` - If contract is not initialized.
-    /// * `LumenError::InvalidHash` - If confirmation_hash is all zeros.
-    /// * `LumenError::InvalidAmount` - If release_percent is 0 or > 100.
-    /// * `LumenError::ShipmentNotFound` - If shipment does not exist.
-    /// * `LumenError::Unauthorized` - If called by an address other than the shipment receiver.
-    /// * `LumenError::InvalidStatus` - If shipment is not in a valid state for partial delivery.
+    /// * `OrbitHaulError::NotInitialized` - If contract is not initialized.
+    /// * `OrbitHaulError::InvalidHash` - If confirmation_hash is all zeros.
+    /// * `OrbitHaulError::InvalidAmount` - If release_percent is 0 or > 100.
+    /// * `OrbitHaulError::ShipmentNotFound` - If shipment does not exist.
+    /// * `OrbitHaulError::Unauthorized` - If called by an address other than the shipment receiver.
+    /// * `OrbitHaulError::InvalidStatus` - If shipment is not in a valid state for partial delivery.
     ///
     /// # Examples
     /// ```rust
@@ -3166,7 +3166,7 @@ impl LumenShipment {
         shipment_id: u64,
         confirmation_hash: BytesN<32>,
         release_percent: u32,
-    ) -> Result<(), LumenError> {
+    ) -> Result<(), OrbitHaulError> {
         require_initialized(&env)?;
         require_not_paused(&env)?;
         receiver.require_auth();
@@ -3175,13 +3175,13 @@ impl LumenShipment {
         validation::validate_hash(&confirmation_hash)?;
 
         if release_percent == 0 || release_percent > 100 {
-            return Err(LumenError::InvalidAmount);
+            return Err(OrbitHaulError::InvalidAmount);
         }
 
         let mut shipment =
-            storage::get_shipment(&env, shipment_id).ok_or(LumenError::ShipmentNotFound)?;
+            storage::get_shipment(&env, shipment_id).ok_or(OrbitHaulError::ShipmentNotFound)?;
         if shipment.receiver != receiver {
-            return Err(LumenError::Unauthorized);
+            return Err(OrbitHaulError::Unauthorized);
         }
         require_not_finalized(&shipment)?;
 
@@ -3189,19 +3189,19 @@ impl LumenShipment {
             && shipment.status != ShipmentStatus::AtCheckpoint
             && shipment.status != ShipmentStatus::PartiallyDelivered
         {
-            return Err(LumenError::InvalidStatus);
+            return Err(OrbitHaulError::InvalidStatus);
         }
 
         let release_amount =
             checked_mul_div_i128(shipment.total_escrow, release_percent as i128, 100)?;
         if release_amount <= 0 {
-            return Err(LumenError::InvalidAmount);
+            return Err(OrbitHaulError::InvalidAmount);
         }
 
         let released_so_far = checked_sub_i128(shipment.total_escrow, shipment.escrow_amount)?;
         let new_total_released = checked_add_i128(released_so_far, release_amount)?;
         if new_total_released > shipment.total_escrow {
-            return Err(LumenError::InvalidAmount);
+            return Err(OrbitHaulError::InvalidAmount);
         }
 
         let old_status = shipment.status.clone();
@@ -3246,13 +3246,13 @@ impl LumenShipment {
     /// * `data_hash` - Encrypted off-chain location data representation.
     ///
     /// # Returns
-    /// * `Result<(), LumenError>` - Ok on successful report tracking.
+    /// * `Result<(), OrbitHaulError>` - Ok on successful report tracking.
     ///
     /// # Errors
-    /// * `LumenError::NotInitialized` - If contract is not initialized.
-    /// * `LumenError::Unauthorized` - If caller isn't a Carrier role.
-    /// * `LumenError::InvalidHash` - If data_hash is all zeros.
-    /// * `LumenError::ShipmentNotFound` - If tracking context specifies an invalid shipment.
+    /// * `OrbitHaulError::NotInitialized` - If contract is not initialized.
+    /// * `OrbitHaulError::Unauthorized` - If caller isn't a Carrier role.
+    /// * `OrbitHaulError::InvalidHash` - If data_hash is all zeros.
+    /// * `OrbitHaulError::ShipmentNotFound` - If tracking context specifies an invalid shipment.
     ///
     /// # Examples
     /// ```rust
@@ -3264,14 +3264,14 @@ impl LumenShipment {
         shipment_id: u64,
         zone_type: GeofenceEvent,
         data_hash: BytesN<32>,
-    ) -> Result<(), LumenError> {
+    ) -> Result<(), OrbitHaulError> {
         require_initialized(&env)?;
         carrier.require_auth();
         require_role(&env, &carrier, Role::Carrier)?;
 
         // Verify shipment exists and carrier is assigned
         let shipment =
-            storage::get_shipment(&env, shipment_id).ok_or(LumenError::ShipmentNotFound)?;
+            storage::get_shipment(&env, shipment_id).ok_or(OrbitHaulError::ShipmentNotFound)?;
 
         require_not_finalized(&shipment)?;
 
@@ -3279,7 +3279,7 @@ impl LumenShipment {
         validation::validate_hash(&data_hash)?;
 
         if shipment.carrier != carrier {
-            return Err(LumenError::Unauthorized);
+            return Err(OrbitHaulError::Unauthorized);
         }
 
         events::emit_geofence_event(&env, shipment_id, zone_type, &data_hash);
@@ -3299,14 +3299,14 @@ impl LumenShipment {
     /// * `data_hash` - The mapped hash associated with the update.
     ///
     /// # Returns
-    /// * `Result<(), LumenError>` - Ok on successful ETA registry.
+    /// * `Result<(), OrbitHaulError>` - Ok on successful ETA registry.
     ///
     /// # Errors
-    /// * `LumenError::NotInitialized` - If contract is not initialized.
-    /// * `LumenError::Unauthorized` - If caller isn't the assigned carrier.
-    /// * `LumenError::InvalidHash` - If data_hash is all zeros.
-    /// * `LumenError::ShipmentNotFound` - If shipment instance targets missing entry.
-    /// * `LumenError::InvalidTimestamp` - If provided ETA is strictly in the past or present.
+    /// * `OrbitHaulError::NotInitialized` - If contract is not initialized.
+    /// * `OrbitHaulError::Unauthorized` - If caller isn't the assigned carrier.
+    /// * `OrbitHaulError::InvalidHash` - If data_hash is all zeros.
+    /// * `OrbitHaulError::ShipmentNotFound` - If shipment instance targets missing entry.
+    /// * `OrbitHaulError::InvalidTimestamp` - If provided ETA is strictly in the past or present.
     ///
     /// # Examples
     /// ```rust
@@ -3318,13 +3318,13 @@ impl LumenShipment {
         shipment_id: u64,
         eta_timestamp: u64,
         data_hash: BytesN<32>,
-    ) -> Result<(), LumenError> {
+    ) -> Result<(), OrbitHaulError> {
         require_initialized(&env)?;
         carrier.require_auth();
         require_role(&env, &carrier, Role::Carrier)?;
 
         let shipment =
-            storage::get_shipment(&env, shipment_id).ok_or(LumenError::ShipmentNotFound)?;
+            storage::get_shipment(&env, shipment_id).ok_or(OrbitHaulError::ShipmentNotFound)?;
 
         require_not_finalized(&shipment)?;
 
@@ -3332,11 +3332,11 @@ impl LumenShipment {
         validation::validate_hash(&data_hash)?;
 
         if shipment.carrier != carrier {
-            return Err(LumenError::Unauthorized);
+            return Err(OrbitHaulError::Unauthorized);
         }
 
         if eta_timestamp <= env.ledger().timestamp() {
-            return Err(LumenError::InvalidTimestamp);
+            return Err(OrbitHaulError::InvalidTimestamp);
         }
 
         events::emit_eta_updated(&env, shipment_id, eta_timestamp, &data_hash);
@@ -3355,15 +3355,15 @@ impl LumenShipment {
     /// * `data_hash` - Integrity hash associated with offchain progress indicators.
     ///
     /// # Returns
-    /// * `Result<(), LumenError>` - Ok on successful tracking record update.
+    /// * `Result<(), OrbitHaulError>` - Ok on successful tracking record update.
     ///
     /// # Errors
-    /// * `LumenError::NotInitialized` - If contract is not initialized.
-    /// * `LumenError::Unauthorized` - If called by unassigned identity.
-    /// * `LumenError::InvalidHash` - If data_hash is all zeros.
-    /// * `LumenError::CarrierSuspended` - If the carrier is suspended.
-    /// * `LumenError::ShipmentNotFound` - If shipment instance targets missing entry.
-    /// * `LumenError::InvalidStatus` - If tracked instance is not `InTransit`.
+    /// * `OrbitHaulError::NotInitialized` - If contract is not initialized.
+    /// * `OrbitHaulError::Unauthorized` - If called by unassigned identity.
+    /// * `OrbitHaulError::InvalidHash` - If data_hash is all zeros.
+    /// * `OrbitHaulError::CarrierSuspended` - If the carrier is suspended.
+    /// * `OrbitHaulError::ShipmentNotFound` - If shipment instance targets missing entry.
+    /// * `OrbitHaulError::InvalidStatus` - If tracked instance is not `InTransit`.
     ///
     /// # Examples
     /// ```rust
@@ -3375,7 +3375,7 @@ impl LumenShipment {
         shipment_id: u64,
         checkpoint: Symbol,
         data_hash: BytesN<32>,
-    ) -> Result<(), LumenError> {
+    ) -> Result<(), OrbitHaulError> {
         require_initialized(&env)?;
         require_not_paused(&env)?;
         carrier.require_auth();
@@ -3384,7 +3384,7 @@ impl LumenShipment {
 
         // Verify shipment exists, carrier is assigned, and status
         let shipment =
-            storage::get_shipment(&env, shipment_id).ok_or(LumenError::ShipmentNotFound)?;
+            storage::get_shipment(&env, shipment_id).ok_or(OrbitHaulError::ShipmentNotFound)?;
 
         require_not_finalized(&shipment)?;
 
@@ -3395,18 +3395,18 @@ impl LumenShipment {
         validation::validate_hash(&data_hash)?;
 
         if shipment.carrier != carrier {
-            return Err(LumenError::Unauthorized);
+            return Err(OrbitHaulError::Unauthorized);
         }
 
         if shipment.status != ShipmentStatus::InTransit {
-            return Err(LumenError::InvalidStatus);
+            return Err(OrbitHaulError::InvalidStatus);
         }
 
         // Enforce milestone event payload size guard
         let config = config::get_config(&env);
         let current_milestone_count = storage::get_milestone_event_count(&env, shipment_id);
         if current_milestone_count >= config.max_milestones_per_shipment {
-            return Err(LumenError::MilestoneLimitExceeded);
+            return Err(OrbitHaulError::MilestoneLimitExceeded);
         }
 
         let timestamp = env.ledger().timestamp();
@@ -3443,7 +3443,7 @@ impl LumenShipment {
             }
 
             if already_paid {
-                return Err(LumenError::MilestoneAlreadyPaid);
+                return Err(OrbitHaulError::MilestoneAlreadyPaid);
             }
 
             let milestone = mut_shipment.payment_milestones.get(idx as u32).unwrap();
@@ -3496,16 +3496,16 @@ impl LumenShipment {
     /// * `milestones` - Vector of (checkpoint, data_hash) tuples.
     ///
     /// # Returns
-    /// * `Result<(), LumenError>` - Ok on successful batch recording.
+    /// * `Result<(), OrbitHaulError>` - Ok on successful batch recording.
     ///
     /// # Errors
-    /// * `LumenError::NotInitialized` - If contract is not initialized.
-    /// * `LumenError::Unauthorized` - If called by unassigned identity.
-    /// * `LumenError::InvalidHash` - If any data_hash is all zeros.
-    /// * `LumenError::CarrierSuspended` - If the carrier is suspended.
-    /// * `LumenError::ShipmentNotFound` - If shipment instance targets missing entry.
-    /// * `LumenError::InvalidStatus` - If tracked instance is not `InTransit`.
-    /// * `LumenError::BatchTooLarge` - If more than 10 milestones are submitted.
+    /// * `OrbitHaulError::NotInitialized` - If contract is not initialized.
+    /// * `OrbitHaulError::Unauthorized` - If called by unassigned identity.
+    /// * `OrbitHaulError::InvalidHash` - If any data_hash is all zeros.
+    /// * `OrbitHaulError::CarrierSuspended` - If the carrier is suspended.
+    /// * `OrbitHaulError::ShipmentNotFound` - If shipment instance targets missing entry.
+    /// * `OrbitHaulError::InvalidStatus` - If tracked instance is not `InTransit`.
+    /// * `OrbitHaulError::BatchTooLarge` - If more than 10 milestones are submitted.
     ///
     /// # Examples
     /// ```rust
@@ -3520,7 +3520,7 @@ impl LumenShipment {
         carrier: Address,
         shipment_id: u64,
         milestones: Vec<(Symbol, BytesN<32>)>,
-    ) -> Result<(), LumenError> {
+    ) -> Result<(), OrbitHaulError> {
         require_initialized(&env)?;
         require_not_paused(&env)?;
         carrier.require_auth();
@@ -3530,7 +3530,7 @@ impl LumenShipment {
         // Validate batch size
         let config = config::get_config(&env);
         if milestones.len() > config.batch_operation_limit {
-            return Err(LumenError::BatchTooLarge);
+            return Err(OrbitHaulError::BatchTooLarge);
         }
 
         // Validate all hashes in milestones
@@ -3540,16 +3540,16 @@ impl LumenShipment {
 
         // Verify shipment exists, carrier is assigned, and status
         let shipment =
-            storage::get_shipment(&env, shipment_id).ok_or(LumenError::ShipmentNotFound)?;
+            storage::get_shipment(&env, shipment_id).ok_or(OrbitHaulError::ShipmentNotFound)?;
 
         require_not_finalized(&shipment)?;
 
         if shipment.carrier != carrier {
-            return Err(LumenError::Unauthorized);
+            return Err(OrbitHaulError::Unauthorized);
         }
 
         if shipment.status != ShipmentStatus::InTransit {
-            return Err(LumenError::InvalidStatus);
+            return Err(OrbitHaulError::InvalidStatus);
         }
 
         // Validate all milestones before committing any (atomic operation)
@@ -3567,10 +3567,10 @@ impl LumenShipment {
         let new_milestones = milestones.len();
         if current_milestone_count
             .checked_add(new_milestones)
-            .ok_or(LumenError::ArithmeticError)?
+            .ok_or(OrbitHaulError::ArithmeticError)?
             > config.max_milestones_per_shipment
         {
-            return Err(LumenError::MilestoneLimitExceeded);
+            return Err(OrbitHaulError::MilestoneLimitExceeded);
         }
 
         // All validations passed, now process each milestone
@@ -3657,18 +3657,18 @@ impl LumenShipment {
         caller: Address,
         shipment_id: u64,
         milestone_name: Symbol,
-    ) -> Result<(), LumenError> {
+    ) -> Result<(), OrbitHaulError> {
         require_initialized(&env)?;
         require_not_paused(&env)?;
         caller.require_auth();
 
         let mut shipment =
-            storage::get_shipment(&env, shipment_id).ok_or(LumenError::ShipmentNotFound)?;
+            storage::get_shipment(&env, shipment_id).ok_or(OrbitHaulError::ShipmentNotFound)?;
         require_not_finalized(&shipment)?;
 
         let admin = storage::get_admin(&env);
         if caller != shipment.carrier && caller != admin {
-            return Err(LumenError::Unauthorized);
+            return Err(OrbitHaulError::Unauthorized);
         }
 
         if caller == shipment.carrier {
@@ -3684,7 +3684,7 @@ impl LumenShipment {
             }
         }
 
-        let idx = milestone_idx.ok_or(LumenError::InvalidShipmentInput)?;
+        let idx = milestone_idx.ok_or(OrbitHaulError::InvalidShipmentInput)?;
 
         // Check if already in milestones_completed
         let mut already_completed = false;
@@ -3696,14 +3696,14 @@ impl LumenShipment {
         }
 
         if already_completed {
-            return Err(LumenError::MilestoneAlreadyPaid);
+            return Err(OrbitHaulError::MilestoneAlreadyPaid);
         }
 
         // Enforce sequential ordering: all prior milestones must be paid first.
         if idx > 0 {
             let completed_count = shipment.milestones_completed.len() as usize;
             if completed_count < idx {
-                return Err(LumenError::InvalidStatus);
+                return Err(OrbitHaulError::InvalidStatus);
             }
         }
 
@@ -3762,16 +3762,16 @@ impl LumenShipment {
     /// * `shipment_id` - Shipment ID to renew TTL.
     ///
     /// # Returns
-    /// * `Result<(), LumenError>` - Ok on success.
+    /// * `Result<(), OrbitHaulError>` - Ok on success.
     ///
     /// # Errors
-    /// * `LumenError::NotInitialized` - If contract is not initialized.
+    /// * `OrbitHaulError::NotInitialized` - If contract is not initialized.
     ///
     /// # Examples
     /// ```rust
     /// // contract.extend_shipment_ttl(env, 1);
     /// ```
-    pub fn extend_shipment_ttl(env: Env, shipment_id: u64) -> Result<(), LumenError> {
+    pub fn extend_shipment_ttl(env: Env, shipment_id: u64) -> Result<(), OrbitHaulError> {
         require_initialized(&env)?;
         extend_shipment_ttl(&env, shipment_id);
         Ok(())
@@ -3789,14 +3789,14 @@ impl LumenShipment {
     /// * `reason_hash` - The mapped hash associated to the cancellation context.
     ///
     /// # Returns
-    /// * `Result<(), LumenError>` - Ok on cancellation.
+    /// * `Result<(), OrbitHaulError>` - Ok on cancellation.
     ///
     /// # Errors
-    /// * `LumenError::NotInitialized` - If contract is not initialized.
-    /// * `LumenError::InvalidHash` - If reason_hash is all zeros.
-    /// * `LumenError::ShipmentNotFound` - If tracking context is invalid list element.
-    /// * `LumenError::Unauthorized` - If called by unauthorized accounts.
-    /// * `LumenError::ShipmentAlreadyCompleted` - If tracking context specified reached terminal states.
+    /// * `OrbitHaulError::NotInitialized` - If contract is not initialized.
+    /// * `OrbitHaulError::InvalidHash` - If reason_hash is all zeros.
+    /// * `OrbitHaulError::ShipmentNotFound` - If tracking context is invalid list element.
+    /// * `OrbitHaulError::Unauthorized` - If called by unauthorized accounts.
+    /// * `OrbitHaulError::ShipmentAlreadyCompleted` - If tracking context specified reached terminal states.
     ///
     /// # Examples
     /// ```rust
@@ -3807,7 +3807,7 @@ impl LumenShipment {
         caller: Address,
         shipment_id: u64,
         reason_hash: BytesN<32>,
-    ) -> Result<(), LumenError> {
+    ) -> Result<(), OrbitHaulError> {
         require_initialized(&env)?;
         require_not_paused(&env)?;
         caller.require_auth();
@@ -3817,12 +3817,12 @@ impl LumenShipment {
 
         let admin = storage::get_admin(&env);
         let mut shipment =
-            storage::get_shipment(&env, shipment_id).ok_or(LumenError::ShipmentNotFound)?;
+            storage::get_shipment(&env, shipment_id).ok_or(OrbitHaulError::ShipmentNotFound)?;
 
         require_not_finalized(&shipment)?;
 
         if caller != shipment.sender && caller != admin {
-            return Err(LumenError::Unauthorized);
+            return Err(OrbitHaulError::Unauthorized);
         }
 
         // Check for suspension if caller is the sender (company)
@@ -3832,7 +3832,7 @@ impl LumenShipment {
 
         match shipment.status {
             ShipmentStatus::Delivered | ShipmentStatus::Disputed => {
-                return Err(LumenError::ShipmentAlreadyCompleted);
+                return Err(OrbitHaulError::ShipmentAlreadyCompleted);
             }
             _ => {}
         }
@@ -3890,14 +3890,14 @@ impl LumenShipment {
     /// * `reason_hash` - Mandatory SHA-256 hash of the off-chain reason document.
     ///
     /// # Returns
-    /// * `Result<(), LumenError>` - Ok on success.
+    /// * `Result<(), OrbitHaulError>` - Ok on success.
     ///
     /// # Errors
-    /// * `LumenError::NotInitialized` - Contract not initialized.
-    /// * `LumenError::Unauthorized` - Caller is not the admin.
-    /// * `LumenError::ShipmentNotFound` - Shipment does not exist.
-    /// * `LumenError::InvalidHash` - `reason_hash` is all zeros.
-    /// * `LumenError::ShipmentAlreadyCompleted` - Shipment is already Delivered or Cancelled.
+    /// * `OrbitHaulError::NotInitialized` - Contract not initialized.
+    /// * `OrbitHaulError::Unauthorized` - Caller is not the admin.
+    /// * `OrbitHaulError::ShipmentNotFound` - Shipment does not exist.
+    /// * `OrbitHaulError::InvalidHash` - `reason_hash` is all zeros.
+    /// * `OrbitHaulError::ShipmentAlreadyCompleted` - Shipment is already Delivered or Cancelled.
     ///
     /// # Examples
     /// ```rust
@@ -3908,28 +3908,28 @@ impl LumenShipment {
         admin: Address,
         shipment_id: u64,
         reason_hash: BytesN<32>,
-    ) -> Result<(), LumenError> {
+    ) -> Result<(), OrbitHaulError> {
         require_initialized(&env)?;
         require_not_paused(&env)?;
         admin.require_auth();
 
         // Strict admin-only gate — no company/carrier bypass.
         if storage::get_admin(&env) != admin {
-            return Err(LumenError::Unauthorized);
+            return Err(OrbitHaulError::Unauthorized);
         }
 
         // Reason hash is mandatory and must be non-zero.
         validation::validate_hash(&reason_hash)?;
 
         let mut shipment =
-            storage::get_shipment(&env, shipment_id).ok_or(LumenError::ShipmentNotFound)?;
+            storage::get_shipment(&env, shipment_id).ok_or(OrbitHaulError::ShipmentNotFound)?;
 
         require_not_finalized(&shipment)?;
 
         // Terminal states cannot be force-cancelled.
         match shipment.status {
             ShipmentStatus::Delivered | ShipmentStatus::Cancelled => {
-                return Err(LumenError::ShipmentAlreadyCompleted);
+                return Err(OrbitHaulError::ShipmentAlreadyCompleted);
             }
             _ => {}
         }
@@ -3940,7 +3940,7 @@ impl LumenShipment {
         // Deterministic escrow refund: always refund to company if escrow is held.
         if escrow_amount > 0 {
             let token_contract =
-                storage::get_token_contract(&env).ok_or(LumenError::NotInitialized)?;
+                storage::get_token_contract(&env).ok_or(OrbitHaulError::NotInitialized)?;
             let contract_address = env.current_contract_address();
             invoke_token_transfer(
                 &env,
@@ -3986,13 +3986,13 @@ impl LumenShipment {
     /// * `new_wasm_hash` - Hash pointer to the new WASM instance loaded on network.
     ///
     /// # Returns
-    /// * `Result<(), LumenError>` - Ok on successful deployment upgrade instance.
+    /// * `Result<(), OrbitHaulError>` - Ok on successful deployment upgrade instance.
     ///
     /// # Errors
-    /// * `LumenError::NotInitialized` - If contract is not initialized.
-    /// * `LumenError::Unauthorized` - If caller isn't contract admin instance.
-    /// * `LumenError::InvalidHash` - If new_wasm_hash is all zeros.
-    /// * `LumenError::CounterOverflow` - If total tracking version identifier pointer triggers overflow.
+    /// * `OrbitHaulError::NotInitialized` - If contract is not initialized.
+    /// * `OrbitHaulError::Unauthorized` - If caller isn't contract admin instance.
+    /// * `OrbitHaulError::InvalidHash` - If new_wasm_hash is all zeros.
+    /// * `OrbitHaulError::CounterOverflow` - If total tracking version identifier pointer triggers overflow.
     ///
     /// # Examples
     /// ```rust
@@ -4003,7 +4003,7 @@ impl LumenShipment {
         admin: Address,
         new_wasm_hash: BytesN<32>,
         target_version: u32,
-    ) -> Result<(), LumenError> {
+    ) -> Result<(), OrbitHaulError> {
         require_initialized(&env)?;
         admin.require_auth();
 
@@ -4011,14 +4011,14 @@ impl LumenShipment {
         validation::validate_hash(&new_wasm_hash)?;
 
         if storage::get_admin(&env) != admin {
-            return Err(LumenError::Unauthorized);
+            return Err(OrbitHaulError::Unauthorized);
         }
 
         let current_version = storage::get_version(&env);
 
         // Enforce one-way migration guardrails and allowed edges
         if !is_allowed_migration(current_version, target_version) {
-            return Err(LumenError::InvalidMigrationEdge);
+            return Err(OrbitHaulError::InvalidMigrationEdge);
         }
 
         let shipment_count = storage::get_shipment_counter(&env);
@@ -4045,14 +4045,14 @@ impl LumenShipment {
     /// * `target_version` - The version to simulate migrating to.
     ///
     /// # Returns
-    /// * `Result<MigrationReport, LumenError>` - Summary of the migration impact.
-    pub fn dry_run_migration(env: Env, target_version: u32) -> Result<MigrationReport, LumenError> {
+    /// * `Result<MigrationReport, OrbitHaulError>` - Summary of the migration impact.
+    pub fn dry_run_migration(env: Env, target_version: u32) -> Result<MigrationReport, OrbitHaulError> {
         require_initialized(&env)?;
 
         let current_version = storage::get_version(&env);
 
         if !is_allowed_migration(current_version, target_version) {
-            return Err(LumenError::InvalidMigrationEdge);
+            return Err(OrbitHaulError::InvalidMigrationEdge);
         }
 
         let shipment_count = storage::get_shipment_counter(&env);
@@ -4074,14 +4074,14 @@ impl LumenShipment {
     /// * `shipment_id` - Tracking assignment associated with delivery payload instances.
     ///
     /// # Returns
-    /// * `Result<(), LumenError>` - Ok on successful asset delivery.
+    /// * `Result<(), OrbitHaulError>` - Ok on successful asset delivery.
     ///
     /// # Errors
-    /// * `LumenError::NotInitialized` - If contract is not initialized.
-    /// * `LumenError::ShipmentNotFound` - If tracking context specifies an invalid shipment.
-    /// * `LumenError::Unauthorized` - If caller isn't receiver or admin.
-    /// * `LumenError::InvalidStatus` - If contract expects specific lifecycle constraint and differs.
-    /// * `LumenError::InsufficientFunds` - If payload is fully released and balances are zeroed out.
+    /// * `OrbitHaulError::NotInitialized` - If contract is not initialized.
+    /// * `OrbitHaulError::ShipmentNotFound` - If tracking context specifies an invalid shipment.
+    /// * `OrbitHaulError::Unauthorized` - If caller isn't receiver or admin.
+    /// * `OrbitHaulError::InvalidStatus` - If contract expects specific lifecycle constraint and differs.
+    /// * `OrbitHaulError::InsufficientFunds` - If payload is fully released and balances are zeroed out.
     ///
     /// # Examples
     /// ```rust
@@ -4109,28 +4109,28 @@ impl LumenShipment {
     /// // Manually release any remaining escrow to the carrier after delivery is confirmed.
     /// client.release_escrow(&receiver, &shipment_id);
     /// ```
-    pub fn release_escrow(env: Env, caller: Address, shipment_id: u64) -> Result<(), LumenError> {
+    pub fn release_escrow(env: Env, caller: Address, shipment_id: u64) -> Result<(), OrbitHaulError> {
         require_initialized(&env)?;
         caller.require_auth();
 
         with_reentrancy_lock(&env, || {
             let admin = storage::get_admin(&env);
             let mut shipment =
-                storage::get_shipment(&env, shipment_id).ok_or(LumenError::ShipmentNotFound)?;
+                storage::get_shipment(&env, shipment_id).ok_or(OrbitHaulError::ShipmentNotFound)?;
 
             require_not_finalized(&shipment)?;
 
             if caller != shipment.receiver && caller != admin {
-                return Err(LumenError::Unauthorized);
+                return Err(OrbitHaulError::Unauthorized);
             }
 
             if shipment.status != ShipmentStatus::Delivered {
-                return Err(LumenError::InvalidStatus);
+                return Err(OrbitHaulError::InvalidStatus);
             }
 
             let escrow_amount = shipment.escrow_amount;
             if escrow_amount == 0 {
-                return Err(LumenError::InsufficientFunds);
+                return Err(OrbitHaulError::InsufficientFunds);
             }
 
             internal_release_escrow(&env, &mut shipment, escrow_amount)?;
@@ -4165,14 +4165,14 @@ impl LumenShipment {
     /// * `shipment_id` - Identification marker mapping.
     ///
     /// # Returns
-    /// * `Result<(), LumenError>` - Ok on successful refund sequence generation.
+    /// * `Result<(), OrbitHaulError>` - Ok on successful refund sequence generation.
     ///
     /// # Errors
-    /// * `LumenError::NotInitialized` - If contract is not initialized.
-    /// * `LumenError::ShipmentNotFound` - If valid identifiers track undefined mappings instances.
-    /// * `LumenError::Unauthorized` - If execution identity doesn't resolve matching configurations contexts mappings.
-    /// * `LumenError::InvalidStatus` - If mapping resolves illegal flow mappings configuration combinations triggers.
-    /// * `LumenError::InsufficientFunds` - If token escrow state points map uninitialized quantities values scope checks.
+    /// * `OrbitHaulError::NotInitialized` - If contract is not initialized.
+    /// * `OrbitHaulError::ShipmentNotFound` - If valid identifiers track undefined mappings instances.
+    /// * `OrbitHaulError::Unauthorized` - If execution identity doesn't resolve matching configurations contexts mappings.
+    /// * `OrbitHaulError::InvalidStatus` - If mapping resolves illegal flow mappings configuration combinations triggers.
+    /// * `OrbitHaulError::InsufficientFunds` - If token escrow state points map uninitialized quantities values scope checks.
     ///
     /// # Examples
     /// ```rust
@@ -4198,19 +4198,19 @@ impl LumenShipment {
     /// // Refund escrow back to the company when the shipment is in Created or Cancelled state.
     /// client.refund_escrow(&admin, &shipment_id);
     /// ```
-    pub fn refund_escrow(env: Env, caller: Address, shipment_id: u64) -> Result<(), LumenError> {
+    pub fn refund_escrow(env: Env, caller: Address, shipment_id: u64) -> Result<(), OrbitHaulError> {
         require_initialized(&env)?;
         caller.require_auth();
 
         with_reentrancy_lock(&env, || {
             let admin = storage::get_admin(&env);
             let mut shipment =
-                storage::get_shipment(&env, shipment_id).ok_or(LumenError::ShipmentNotFound)?;
+                storage::get_shipment(&env, shipment_id).ok_or(OrbitHaulError::ShipmentNotFound)?;
 
             require_not_finalized(&shipment)?;
 
             if caller != shipment.sender && caller != admin {
-                return Err(LumenError::Unauthorized);
+                return Err(OrbitHaulError::Unauthorized);
             }
 
             // Check for suspension if caller is the sender (company)
@@ -4221,17 +4221,17 @@ impl LumenShipment {
             if shipment.status != ShipmentStatus::Created
                 && shipment.status != ShipmentStatus::Cancelled
             {
-                return Err(LumenError::InvalidStatus);
+                return Err(OrbitHaulError::InvalidStatus);
             }
 
             let escrow_amount = shipment.escrow_amount;
             if escrow_amount == 0 {
-                return Err(LumenError::InsufficientFunds);
+                return Err(OrbitHaulError::InsufficientFunds);
             }
 
             // Get token contract address
             let token_contract =
-                storage::get_token_contract(&env).ok_or(LumenError::NotInitialized)?;
+                storage::get_token_contract(&env).ok_or(OrbitHaulError::NotInitialized)?;
 
             // Transfer tokens from this contract to company
             let contract_address = env.current_contract_address();
@@ -4294,14 +4294,14 @@ impl LumenShipment {
     /// * `reason_hash` - Encoded offchain metadata representation parameter validation identifier limits strings pointers.
     ///
     /// # Returns
-    /// * `Result<(), LumenError>` - Ok on successful dispute registry logging.
+    /// * `Result<(), OrbitHaulError>` - Ok on successful dispute registry logging.
     ///
     /// # Errors
-    /// * `LumenError::NotInitialized` - If contract is not initialized.
-    /// * `LumenError::InvalidHash` - If reason_hash is all zeros.
-    /// * `LumenError::ShipmentNotFound` - If shipment does not exist.
-    /// * `LumenError::Unauthorized` - If caller is not involved in the shipment.
-    /// * `LumenError::ShipmentAlreadyCompleted` - If shipment is already completed.
+    /// * `OrbitHaulError::NotInitialized` - If contract is not initialized.
+    /// * `OrbitHaulError::InvalidHash` - If reason_hash is all zeros.
+    /// * `OrbitHaulError::ShipmentNotFound` - If shipment does not exist.
+    /// * `OrbitHaulError::Unauthorized` - If caller is not involved in the shipment.
+    /// * `OrbitHaulError::ShipmentAlreadyCompleted` - If shipment is already completed.
     ///
     /// # Examples
     /// ```rust
@@ -4335,7 +4335,7 @@ impl LumenShipment {
         caller: Address,
         shipment_id: u64,
         reason_hash: BytesN<32>,
-    ) -> Result<(), LumenError> {
+    ) -> Result<(), OrbitHaulError> {
         require_initialized(&env)?;
         require_not_paused(&env)?;
         caller.require_auth();
@@ -4344,12 +4344,12 @@ impl LumenShipment {
         validation::validate_hash(&reason_hash)?;
 
         let mut shipment =
-            storage::get_shipment(&env, shipment_id).ok_or(LumenError::ShipmentNotFound)?;
+            storage::get_shipment(&env, shipment_id).ok_or(OrbitHaulError::ShipmentNotFound)?;
 
         require_not_finalized(&shipment)?;
 
         if caller != shipment.sender && caller != shipment.receiver && caller != shipment.carrier {
-            return Err(LumenError::Unauthorized);
+            return Err(OrbitHaulError::Unauthorized);
         }
 
         // Check for suspension if caller is the sender (company)
@@ -4360,7 +4360,7 @@ impl LumenShipment {
         if shipment.status == ShipmentStatus::Cancelled
             || shipment.status == ShipmentStatus::Disputed
         {
-            return Err(LumenError::ShipmentAlreadyCompleted);
+            return Err(OrbitHaulError::ShipmentAlreadyCompleted);
         }
 
         let old_status = shipment.status.clone();
@@ -4423,20 +4423,20 @@ impl LumenShipment {
     /// * `reason_hash` - SHA-256 hash of the off-chain justification document.
     ///
     /// # Returns
-    /// * `Result<(), LumenError>` - Ok if successfully resolved.
+    /// * `Result<(), OrbitHaulError>` - Ok if successfully resolved.
     ///
     /// # Errors
-    /// * `LumenError::NotInitialized` - If contract is not initialized.
-    /// * `LumenError::ShipmentNotFound` - If the shipment doesn't exist.
-    /// * `LumenError::Unauthorized` - If called by a non-admin.
-    /// * `LumenError::InvalidHash` - If reason_hash is all zeros.
+    /// * `OrbitHaulError::NotInitialized` - If contract is not initialized.
+    /// * `OrbitHaulError::ShipmentNotFound` - If the shipment doesn't exist.
+    /// * `OrbitHaulError::Unauthorized` - If called by a non-admin.
+    /// * `OrbitHaulError::InvalidHash` - If reason_hash is all zeros.
     pub fn resolve_dispute(
         env: Env,
         admin: Address,
         shipment_id: u64,
         resolution: DisputeResolution,
         reason_hash: BytesN<32>,
-    ) -> Result<(), LumenError> {
+    ) -> Result<(), OrbitHaulError> {
         require_initialized(&env)?;
         require_not_paused(&env)?;
         admin.require_auth();
@@ -4445,7 +4445,7 @@ impl LumenShipment {
 
         // Reason hash is mandatory; use a specific error rather than the generic InvalidHash.
         if reason_hash.to_array().iter().all(|&b| b == 0) {
-            return Err(LumenError::DisputeReasonHashMissing);
+            return Err(OrbitHaulError::DisputeReasonHashMissing);
         }
 
         // Idempotency: reject duplicate (shipment_id, resolution, reason_hash) within the window.
@@ -4459,17 +4459,17 @@ impl LumenShipment {
         check_idempotency(&env, payload)?;
 
         let mut shipment =
-            storage::get_shipment(&env, shipment_id).ok_or(LumenError::ShipmentNotFound)?;
+            storage::get_shipment(&env, shipment_id).ok_or(OrbitHaulError::ShipmentNotFound)?;
 
         require_not_finalized(&shipment)?;
 
         if shipment.status != ShipmentStatus::Disputed {
-            return Err(LumenError::InvalidStatus);
+            return Err(OrbitHaulError::InvalidStatus);
         }
 
         let escrow_amount = shipment.escrow_amount;
         if escrow_amount == 0 {
-            return Err(LumenError::InsufficientFunds);
+            return Err(OrbitHaulError::InsufficientFunds);
         }
 
         shipment.escrow_amount = 0;
@@ -4488,7 +4488,7 @@ impl LumenShipment {
         };
 
         // Transfer tokens from this contract to recipient
-        let token_contract = storage::get_token_contract(&env).ok_or(LumenError::NotInitialized)?;
+        let token_contract = storage::get_token_contract(&env).ok_or(OrbitHaulError::NotInitialized)?;
         let contract_address = env.current_contract_address();
 
         // Create settlement record in Pending state
@@ -4577,14 +4577,14 @@ impl LumenShipment {
     /// * `handoff_hash` - Hash of the handoff documentation.
     ///
     /// # Returns
-    /// * `Result<(), LumenError>` - Ok on successful handoff.
+    /// * `Result<(), OrbitHaulError>` - Ok on successful handoff.
     ///
     /// # Errors
-    /// * `LumenError::NotInitialized` - If contract is not initialized.
-    /// * `LumenError::InvalidHash` - If handoff_hash is all zeros.
-    /// * `LumenError::Unauthorized` - If current_carrier is not the assigned carrier.
-    /// * `LumenError::ShipmentNotFound` - If shipment does not exist.
-    /// * `LumenError::ShipmentAlreadyCompleted` - If shipment is already completed.
+    /// * `OrbitHaulError::NotInitialized` - If contract is not initialized.
+    /// * `OrbitHaulError::InvalidHash` - If handoff_hash is all zeros.
+    /// * `OrbitHaulError::Unauthorized` - If current_carrier is not the assigned carrier.
+    /// * `OrbitHaulError::ShipmentNotFound` - If shipment does not exist.
+    /// * `OrbitHaulError::ShipmentAlreadyCompleted` - If shipment is already completed.
     ///
     /// # Examples
     /// ```rust
@@ -4596,14 +4596,14 @@ impl LumenShipment {
         new_carrier: Address,
         shipment_id: u64,
         handoff_hash: BytesN<32>,
-    ) -> Result<(), LumenError> {
+    ) -> Result<(), OrbitHaulError> {
         require_initialized(&env)?;
         current_carrier.require_auth();
         require_role(&env, &current_carrier, Role::Carrier)?;
         require_role(&env, &new_carrier, Role::Carrier)?;
 
         let mut shipment =
-            storage::get_shipment(&env, shipment_id).ok_or(LumenError::ShipmentNotFound)?;
+            storage::get_shipment(&env, shipment_id).ok_or(OrbitHaulError::ShipmentNotFound)?;
 
         require_not_finalized(&shipment)?;
 
@@ -4612,13 +4612,13 @@ impl LumenShipment {
 
         // Verify current carrier is the assigned carrier
         if shipment.carrier != current_carrier {
-            return Err(LumenError::Unauthorized);
+            return Err(OrbitHaulError::Unauthorized);
         }
 
         // Prevent handoff from completed shipments
         match shipment.status {
             ShipmentStatus::Delivered | ShipmentStatus::Cancelled => {
-                return Err(LumenError::ShipmentAlreadyCompleted);
+                return Err(OrbitHaulError::ShipmentAlreadyCompleted);
             }
             _ => {}
         }
@@ -4665,13 +4665,13 @@ impl LumenShipment {
     /// * `data_hash` - Hash of the breach data.
     ///
     /// # Returns
-    /// * `Result<(), LumenError>` - Ok on successful breach report.
+    /// * `Result<(), OrbitHaulError>` - Ok on successful breach report.
     ///
     /// # Errors
-    /// * `LumenError::NotInitialized` - If contract is not initialized.
-    /// * `LumenError::InvalidHash` - If data_hash is all zeros.
-    /// * `LumenError::Unauthorized` - If caller is not the assigned carrier.
-    /// * `LumenError::ShipmentNotFound` - If shipment does not exist.
+    /// * `OrbitHaulError::NotInitialized` - If contract is not initialized.
+    /// * `OrbitHaulError::InvalidHash` - If data_hash is all zeros.
+    /// * `OrbitHaulError::Unauthorized` - If caller is not the assigned carrier.
+    /// * `OrbitHaulError::ShipmentNotFound` - If shipment does not exist.
     ///
     /// # Examples
     /// ```rust
@@ -4684,13 +4684,13 @@ impl LumenShipment {
         breach_type: BreachType,
         severity: Severity,
         data_hash: BytesN<32>,
-    ) -> Result<(), LumenError> {
+    ) -> Result<(), OrbitHaulError> {
         require_initialized(&env)?;
         carrier.require_auth();
         require_role(&env, &carrier, Role::Carrier)?;
 
         let shipment =
-            storage::get_shipment(&env, shipment_id).ok_or(LumenError::ShipmentNotFound)?;
+            storage::get_shipment(&env, shipment_id).ok_or(OrbitHaulError::ShipmentNotFound)?;
 
         require_not_finalized(&shipment)?;
 
@@ -4699,14 +4699,14 @@ impl LumenShipment {
 
         // Only the assigned carrier for this shipment may report
         if shipment.carrier != carrier {
-            return Err(LumenError::Unauthorized);
+            return Err(OrbitHaulError::Unauthorized);
         }
 
         // Enforce breach payload size guard
         let config = config::get_config(&env);
         let current_breach_count = storage::get_breach_event_count(&env, shipment_id);
         if current_breach_count >= config.max_breaches_per_shipment {
-            return Err(LumenError::BreachLimitExceeded);
+            return Err(OrbitHaulError::BreachLimitExceeded);
         }
 
         events::emit_condition_breach(
@@ -4783,12 +4783,12 @@ impl LumenShipment {
     /// * `proof_hash` - Hash to verify against stored confirmation hash.
     ///
     /// # Returns
-    /// * `Result<bool, LumenError>` - True if hashes match, false otherwise.
+    /// * `Result<bool, OrbitHaulError>` - True if hashes match, false otherwise.
     ///
     /// # Errors
-    /// * `LumenError::NotInitialized` - If contract is not initialized.
-    /// * `LumenError::InvalidHash` - If proof_hash is all zeros.
-    /// * `LumenError::ShipmentNotFound` - If shipment does not exist.
+    /// * `OrbitHaulError::NotInitialized` - If contract is not initialized.
+    /// * `OrbitHaulError::InvalidHash` - If proof_hash is all zeros.
+    /// * `OrbitHaulError::ShipmentNotFound` - If shipment does not exist.
     ///
     /// # Examples
     /// ```rust
@@ -4798,7 +4798,7 @@ impl LumenShipment {
         env: Env,
         shipment_id: u64,
         proof_hash: BytesN<32>,
-    ) -> Result<bool, LumenError> {
+    ) -> Result<bool, OrbitHaulError> {
         require_initialized(&env)?;
 
         // Validate hash
@@ -4806,7 +4806,7 @@ impl LumenShipment {
 
         // Ensure the shipment exists
         if storage::get_shipment(&env, shipment_id).is_none() {
-            return Err(LumenError::ShipmentNotFound);
+            return Err(OrbitHaulError::ShipmentNotFound);
         }
 
         let stored = storage::get_confirmation_hash(&env, shipment_id);
@@ -4819,12 +4819,12 @@ impl LumenShipment {
     /// * `env` - Execution environment.
     /// * `admin` - Current administrator address.
     /// * `new_admin` - Address proposed as the new administrator.
-    pub fn transfer_admin(env: Env, admin: Address, new_admin: Address) -> Result<(), LumenError> {
+    pub fn transfer_admin(env: Env, admin: Address, new_admin: Address) -> Result<(), OrbitHaulError> {
         require_initialized(&env)?;
         admin.require_auth();
 
         if storage::get_admin(&env) != admin {
-            return Err(LumenError::Unauthorized);
+            return Err(OrbitHaulError::Unauthorized);
         }
 
         storage::set_proposed_admin(&env, &new_admin);
@@ -4838,14 +4838,14 @@ impl LumenShipment {
     /// # Arguments
     /// * `env` - Execution environment.
     /// * `new_admin` - The proposed administrator address accepting the role.
-    pub fn accept_admin_transfer(env: Env, new_admin: Address) -> Result<(), LumenError> {
+    pub fn accept_admin_transfer(env: Env, new_admin: Address) -> Result<(), OrbitHaulError> {
         require_initialized(&env)?;
         new_admin.require_auth();
 
-        let proposed = storage::get_proposed_admin(&env).ok_or(LumenError::Unauthorized)?;
+        let proposed = storage::get_proposed_admin(&env).ok_or(OrbitHaulError::Unauthorized)?;
 
         if proposed != new_admin {
-            return Err(LumenError::Unauthorized);
+            return Err(OrbitHaulError::Unauthorized);
         }
 
         let old_admin = storage::get_admin(&env);
@@ -4871,12 +4871,12 @@ impl LumenShipment {
     /// * `threshold` - Number of approvals required (must be <= admin count).
     ///
     /// # Returns
-    /// * `Result<(), LumenError>` - Ok if multi-sig is configured.
+    /// * `Result<(), OrbitHaulError>` - Ok if multi-sig is configured.
     ///
     /// # Errors
-    /// * `LumenError::NotInitialized` - If contract is not initialized.
-    /// * `LumenError::Unauthorized` - If caller is not the admin.
-    /// * `LumenError::InvalidMultiSigConfig` - If config is invalid.
+    /// * `OrbitHaulError::NotInitialized` - If contract is not initialized.
+    /// * `OrbitHaulError::Unauthorized` - If caller is not the admin.
+    /// * `OrbitHaulError::InvalidMultiSigConfig` - If config is invalid.
     ///
     /// # Examples
     /// ```rust
@@ -4888,35 +4888,35 @@ impl LumenShipment {
         admin: Address,
         admins: soroban_sdk::Vec<Address>,
         threshold: u32,
-    ) -> Result<(), LumenError> {
+    ) -> Result<(), OrbitHaulError> {
         require_initialized(&env)?;
         admin.require_auth();
 
         if storage::get_admin(&env) != admin {
-            return Err(LumenError::Unauthorized);
+            return Err(OrbitHaulError::Unauthorized);
         }
 
         // Validate configuration
         let config = config::get_config(&env);
         let admin_count = admins.len();
         if admin_count < config.multisig_min_admins || admin_count > config.multisig_max_admins {
-            return Err(LumenError::InvalidMultiSigConfig);
+            return Err(OrbitHaulError::InvalidMultiSigConfig);
         }
 
         // Validate uniqueness of admin list
         let mut seen = soroban_sdk::Vec::new(&env);
         for admin_addr in admins.iter() {
             if seen.contains(&admin_addr) {
-                return Err(LumenError::InvalidConfig);
+                return Err(OrbitHaulError::InvalidConfig);
             }
             seen.push_back(admin_addr);
         }
 
         if threshold == 0 {
-            return Err(LumenError::InvalidMultiSigConfig);
+            return Err(OrbitHaulError::InvalidMultiSigConfig);
         }
         if threshold > admin_count {
-            return Err(LumenError::InvalidConfig);
+            return Err(OrbitHaulError::InvalidConfig);
         }
 
         storage::set_admin_list(&env, &admins);
@@ -4938,11 +4938,11 @@ impl LumenShipment {
     /// * `action` - The action to be executed after approval.
     ///
     /// # Returns
-    /// * `Result<u64, LumenError>` - The proposal ID.
+    /// * `Result<u64, OrbitHaulError>` - The proposal ID.
     ///
     /// # Errors
-    /// * `LumenError::NotInitialized` - If contract is not initialized.
-    /// * `LumenError::NotAnAdmin` - If caller is not in the admin list.
+    /// * `OrbitHaulError::NotInitialized` - If contract is not initialized.
+    /// * `OrbitHaulError::NotAnAdmin` - If caller is not in the admin list.
     ///
     /// # Examples
     /// ```rust
@@ -4953,18 +4953,18 @@ impl LumenShipment {
         env: Env,
         proposer: Address,
         action: crate::types::AdminAction,
-    ) -> Result<u64, LumenError> {
+    ) -> Result<u64, OrbitHaulError> {
         require_initialized(&env)?;
         proposer.require_auth();
 
         // Check if proposer is in admin list
         if !storage::is_admin(&env, &proposer) {
-            return Err(LumenError::NotAnAdmin);
+            return Err(OrbitHaulError::NotAnAdmin);
         }
 
         let proposal_id = storage::get_proposal_counter(&env)
             .checked_add(1)
-            .ok_or(LumenError::CounterOverflow)?;
+            .ok_or(OrbitHaulError::CounterOverflow)?;
 
         let now = env.ledger().timestamp();
         let config = config::get_config(&env);
@@ -5009,47 +5009,47 @@ impl LumenShipment {
     /// * `proposal_id` - ID of the proposal to approve.
     ///
     /// # Returns
-    /// * `Result<(), LumenError>` - Ok if approved successfully.
+    /// * `Result<(), OrbitHaulError>` - Ok if approved successfully.
     ///
     /// # Errors
-    /// * `LumenError::NotInitialized` - If contract is not initialized.
-    /// * `LumenError::NotAnAdmin` - If caller is not in the admin list.
-    /// * `LumenError::ProposalNotFound` - If proposal doesn't exist.
-    /// * `LumenError::ProposalExpired` - If proposal has expired.
-    /// * `LumenError::ProposalAlreadyExecuted` - If proposal was already executed.
-    /// * `LumenError::AlreadyApproved` - If admin already approved this proposal.
+    /// * `OrbitHaulError::NotInitialized` - If contract is not initialized.
+    /// * `OrbitHaulError::NotAnAdmin` - If caller is not in the admin list.
+    /// * `OrbitHaulError::ProposalNotFound` - If proposal doesn't exist.
+    /// * `OrbitHaulError::ProposalExpired` - If proposal has expired.
+    /// * `OrbitHaulError::ProposalAlreadyExecuted` - If proposal was already executed.
+    /// * `OrbitHaulError::AlreadyApproved` - If admin already approved this proposal.
     ///
     /// # Examples
     /// ```rust
     /// // contract.approve_action(&env, &admin2, 1);
     /// ```
-    pub fn approve_action(env: Env, approver: Address, proposal_id: u64) -> Result<(), LumenError> {
+    pub fn approve_action(env: Env, approver: Address, proposal_id: u64) -> Result<(), OrbitHaulError> {
         require_initialized(&env)?;
         approver.require_auth();
 
         // Check if approver is in admin list
         if !storage::is_admin(&env, &approver) {
-            return Err(LumenError::NotAnAdmin);
+            return Err(OrbitHaulError::NotAnAdmin);
         }
 
         let mut proposal =
-            storage::get_proposal(&env, proposal_id).ok_or(LumenError::ProposalNotFound)?;
+            storage::get_proposal(&env, proposal_id).ok_or(OrbitHaulError::ProposalNotFound)?;
 
         // Check if proposal has expired
         let now = env.ledger().timestamp();
         if now > proposal.expires_at {
-            return Err(LumenError::ProposalExpired);
+            return Err(OrbitHaulError::ProposalExpired);
         }
 
         // Check if already executed
         if proposal.executed {
-            return Err(LumenError::ProposalAlreadyExecuted);
+            return Err(OrbitHaulError::ProposalAlreadyExecuted);
         }
 
         // Check if already approved by this admin
         for existing_approver in proposal.approvals.iter() {
             if existing_approver == approver {
-                return Err(LumenError::AlreadyApproved);
+                return Err(OrbitHaulError::AlreadyApproved);
             }
         }
 
@@ -5079,44 +5079,44 @@ impl LumenShipment {
     /// * `proposal_id` - ID of the proposal to execute.
     ///
     /// # Returns
-    /// * `Result<(), LumenError>` - Ok if executed successfully.
+    /// * `Result<(), OrbitHaulError>` - Ok if executed successfully.
     ///
     /// # Errors
-    /// * `LumenError::NotInitialized` - If contract is not initialized.
-    /// * `LumenError::ProposalNotFound` - If proposal doesn't exist.
-    /// * `LumenError::ProposalExpired` - If proposal has expired.
-    /// * `LumenError::ProposalAlreadyExecuted` - If proposal was already executed.
-    /// * `LumenError::InsufficientApprovals` - If not enough approvals.
+    /// * `OrbitHaulError::NotInitialized` - If contract is not initialized.
+    /// * `OrbitHaulError::ProposalNotFound` - If proposal doesn't exist.
+    /// * `OrbitHaulError::ProposalExpired` - If proposal has expired.
+    /// * `OrbitHaulError::ProposalAlreadyExecuted` - If proposal was already executed.
+    /// * `OrbitHaulError::InsufficientApprovals` - If not enough approvals.
     ///
     /// # Examples
     /// ```rust
     /// // contract.execute_proposal(&env, 1);
     /// ```
-    pub fn execute_proposal(env: Env, proposal_id: u64) -> Result<(), LumenError> {
+    pub fn execute_proposal(env: Env, proposal_id: u64) -> Result<(), OrbitHaulError> {
         require_initialized(&env)?;
         Self::execute_proposal_internal(env, proposal_id)
     }
 
     /// Internal function to execute a proposal.
-    fn execute_proposal_internal(env: Env, proposal_id: u64) -> Result<(), LumenError> {
+    fn execute_proposal_internal(env: Env, proposal_id: u64) -> Result<(), OrbitHaulError> {
         let mut proposal =
-            storage::get_proposal(&env, proposal_id).ok_or(LumenError::ProposalNotFound)?;
+            storage::get_proposal(&env, proposal_id).ok_or(OrbitHaulError::ProposalNotFound)?;
 
         // Check if proposal has expired
         let now = env.ledger().timestamp();
         if now > proposal.expires_at {
-            return Err(LumenError::ProposalExpired);
+            return Err(OrbitHaulError::ProposalExpired);
         }
 
         // Check if already executed
         if proposal.executed {
-            return Err(LumenError::ProposalAlreadyExecuted);
+            return Err(OrbitHaulError::ProposalAlreadyExecuted);
         }
 
         // Check if threshold is met
         let threshold = storage::get_multisig_threshold(&env).unwrap_or(2);
         if proposal.approvals.len() < threshold {
-            return Err(LumenError::InsufficientApprovals);
+            return Err(OrbitHaulError::InsufficientApprovals);
         }
 
         // Mark as executed
@@ -5129,7 +5129,7 @@ impl LumenShipment {
             crate::types::AdminAction::Upgrade(wasm_hash) => {
                 let new_version = storage::get_version(&env)
                     .checked_add(1)
-                    .ok_or(LumenError::CounterOverflow)?;
+                    .ok_or(OrbitHaulError::CounterOverflow)?;
 
                 storage::set_version(&env, new_version);
                 events::emit_contract_upgraded(&env, &proposal.proposer, &wasm_hash, new_version);
@@ -5143,7 +5143,7 @@ impl LumenShipment {
             }
             crate::types::AdminAction::ForceRelease(shipment_id) => {
                 let mut shipment =
-                    storage::get_shipment(&env, shipment_id).ok_or(LumenError::ShipmentNotFound)?;
+                    storage::get_shipment(&env, shipment_id).ok_or(OrbitHaulError::ShipmentNotFound)?;
 
                 let escrow_amount = shipment.escrow_amount;
                 if escrow_amount > 0 {
@@ -5175,7 +5175,7 @@ impl LumenShipment {
             }
             crate::types::AdminAction::ForceRefund(shipment_id) => {
                 let mut shipment =
-                    storage::get_shipment(&env, shipment_id).ok_or(LumenError::ShipmentNotFound)?;
+                    storage::get_shipment(&env, shipment_id).ok_or(OrbitHaulError::ShipmentNotFound)?;
 
                 let escrow_amount = shipment.escrow_amount;
                 if escrow_amount > 0 {
@@ -5220,19 +5220,19 @@ impl LumenShipment {
     /// * `proposal_id` - ID of the proposal.
     ///
     /// # Returns
-    /// * `Result<Proposal, LumenError>` - The proposal data.
+    /// * `Result<Proposal, OrbitHaulError>` - The proposal data.
     ///
     /// # Errors
-    /// * `LumenError::NotInitialized` - If contract is not initialized.
-    /// * `LumenError::ProposalNotFound` - If proposal doesn't exist.
+    /// * `OrbitHaulError::NotInitialized` - If contract is not initialized.
+    /// * `OrbitHaulError::ProposalNotFound` - If proposal doesn't exist.
     ///
     /// # Examples
     /// ```rust
     /// // let proposal = contract.get_proposal(&env, 1);
     /// ```
-    pub fn get_proposal(env: Env, proposal_id: u64) -> Result<crate::types::Proposal, LumenError> {
+    pub fn get_proposal(env: Env, proposal_id: u64) -> Result<crate::types::Proposal, OrbitHaulError> {
         require_initialized(&env)?;
-        storage::get_proposal(&env, proposal_id).ok_or(LumenError::ProposalNotFound)
+        storage::get_proposal(&env, proposal_id).ok_or(OrbitHaulError::ProposalNotFound)
     }
 
     /// Get the multi-sig configuration.
@@ -5241,16 +5241,16 @@ impl LumenShipment {
     /// * `env` - Execution environment.
     ///
     /// # Returns
-    /// * `Result<(Vec<Address>, u32), LumenError>` - Tuple of (admin list, threshold).
+    /// * `Result<(Vec<Address>, u32), OrbitHaulError>` - Tuple of (admin list, threshold).
     ///
     /// # Errors
-    /// * `LumenError::NotInitialized` - If contract is not initialized.
+    /// * `OrbitHaulError::NotInitialized` - If contract is not initialized.
     ///
     /// # Examples
     /// ```rust
     /// // let (admins, threshold) = contract.get_multisig_config(&env);
     /// ```
-    pub fn get_multisig_config(env: Env) -> Result<(soroban_sdk::Vec<Address>, u32), LumenError> {
+    pub fn get_multisig_config(env: Env) -> Result<(soroban_sdk::Vec<Address>, u32), OrbitHaulError> {
         require_initialized(&env)?;
         let admins = storage::get_admin_list(&env).unwrap_or(soroban_sdk::Vec::new(&env));
         let threshold = storage::get_multisig_threshold(&env).unwrap_or(0);
@@ -5267,12 +5267,12 @@ impl LumenShipment {
     /// * `new_config` - The new configuration to apply.
     ///
     /// # Returns
-    /// * `Result<(), LumenError>` - Ok if successfully updated.
+    /// * `Result<(), OrbitHaulError>` - Ok if successfully updated.
     ///
     /// # Errors
-    /// * `LumenError::NotInitialized` - If contract is not initialized.
-    /// * `LumenError::Unauthorized` - If caller is not the admin.
-    /// * `LumenError::InvalidConfig` - If the configuration is invalid.
+    /// * `OrbitHaulError::NotInitialized` - If contract is not initialized.
+    /// * `OrbitHaulError::Unauthorized` - If caller is not the admin.
+    /// * `OrbitHaulError::InvalidConfig` - If the configuration is invalid.
     ///
     /// # Examples
     /// ```rust
@@ -5284,16 +5284,16 @@ impl LumenShipment {
         env: Env,
         admin: Address,
         new_config: ContractConfig,
-    ) -> Result<(), LumenError> {
+    ) -> Result<(), OrbitHaulError> {
         require_initialized(&env)?;
         admin.require_auth();
 
         if storage::get_admin(&env) != admin {
-            return Err(LumenError::Unauthorized);
+            return Err(OrbitHaulError::Unauthorized);
         }
 
         // Validate the new configuration
-        config::validate_config(&new_config).map_err(|_| LumenError::InvalidConfig)?;
+        config::validate_config(&new_config).map_err(|_| OrbitHaulError::InvalidConfig)?;
 
         // Store the new configuration
         config::set_config(&env, &new_config);
@@ -5316,14 +5316,14 @@ impl LumenShipment {
         admin: Address,
         fee_bps: u32,
         treasury: Address,
-    ) -> Result<(), LumenError> {
+    ) -> Result<(), OrbitHaulError> {
         require_initialized(&env)?;
         require_not_paused(&env)?;
         admin.require_auth();
         require_admin(&env, &admin)?;
 
         if fee_bps > 1000 {
-            return Err(LumenError::InvalidAmount);
+            return Err(OrbitHaulError::InvalidAmount);
         }
 
         let config = FeeConfig {
@@ -5345,16 +5345,16 @@ impl LumenShipment {
     /// * `env` - Execution environment.
     ///
     /// # Returns
-    /// * `Result<ContractConfig, LumenError>` - The current configuration.
+    /// * `Result<ContractConfig, OrbitHaulError>` - The current configuration.
     ///
     /// # Errors
-    /// * `LumenError::NotInitialized` - If contract is not initialized.
+    /// * `OrbitHaulError::NotInitialized` - If contract is not initialized.
     ///
     /// # Examples
     /// ```rust
     /// // let config = contract.get_config(&env);
     /// ```
-    pub fn get_contract_config(env: Env) -> Result<ContractConfig, LumenError> {
+    pub fn get_contract_config(env: Env) -> Result<ContractConfig, OrbitHaulError> {
         require_initialized(&env)?;
         Ok(config::get_config(&env))
     }
@@ -5367,16 +5367,16 @@ impl LumenShipment {
     /// * `shipment_id` - ID of the target shipment.
     ///
     /// # Returns
-    /// * `Result<(), LumenError>` - Ok if successfully cancelled and escrow refunded.
+    /// * `Result<(), OrbitHaulError>` - Ok if successfully cancelled and escrow refunded.
     ///
     /// # Errors
-    /// * `LumenError::NotExpired` - If the current ledger time hasn't passed the deadline.
-    /// * `LumenError::ShipmentAlreadyCompleted` - If the shipment is already in a terminal state.
-    pub fn check_deadline(env: Env, shipment_id: u64) -> Result<(), LumenError> {
+    /// * `OrbitHaulError::NotExpired` - If the current ledger time hasn't passed the deadline.
+    /// * `OrbitHaulError::ShipmentAlreadyCompleted` - If the shipment is already in a terminal state.
+    pub fn check_deadline(env: Env, shipment_id: u64) -> Result<(), OrbitHaulError> {
         require_initialized(&env)?;
 
         let mut shipment =
-            storage::get_shipment(&env, shipment_id).ok_or(LumenError::ShipmentNotFound)?;
+            storage::get_shipment(&env, shipment_id).ok_or(OrbitHaulError::ShipmentNotFound)?;
 
         let config = config::get_config(&env);
         let expiry_threshold = shipment
@@ -5384,12 +5384,12 @@ impl LumenShipment {
             .saturating_add(config.deadline_grace_seconds);
 
         if env.ledger().timestamp() < expiry_threshold {
-            return Err(LumenError::NotExpired);
+            return Err(OrbitHaulError::NotExpired);
         }
 
         match shipment.status {
             ShipmentStatus::Delivered | ShipmentStatus::Disputed | ShipmentStatus::Cancelled => {
-                return Err(LumenError::ShipmentAlreadyCompleted);
+                return Err(OrbitHaulError::ShipmentAlreadyCompleted);
             }
             _ => {}
         }
@@ -5410,7 +5410,7 @@ impl LumenShipment {
             storage::remove_escrow_balance(&env, shipment_id);
 
             let token_contract =
-                storage::get_token_contract(&env).ok_or(LumenError::NotInitialized)?;
+                storage::get_token_contract(&env).ok_or(OrbitHaulError::NotInitialized)?;
             let contract_address = env.current_contract_address();
             invoke_token_transfer(
                 &env,
@@ -5433,10 +5433,10 @@ impl LumenShipment {
     pub fn get_shipment_reference(
         env: Env,
         shipment_id: u64,
-    ) -> Result<soroban_sdk::String, LumenError> {
+    ) -> Result<soroban_sdk::String, OrbitHaulError> {
         require_initialized(&env)?;
         if storage::get_shipment(&env, shipment_id).is_none() {
-            return Err(LumenError::ShipmentNotFound);
+            return Err(OrbitHaulError::ShipmentNotFound);
         }
 
         let network_id = env.ledger().network_id();
@@ -5471,17 +5471,17 @@ impl LumenShipment {
     /// * `admin` - The admin address pausing the contract.
     ///
     /// # Returns
-    /// * `Result<(), LumenError>` - Ok if successfully paused.
+    /// * `Result<(), OrbitHaulError>` - Ok if successfully paused.
     ///
     /// # Errors
-    /// * `LumenError::NotInitialized` - If contract is not initialized.
-    /// * `LumenError::Unauthorized` - If caller is not the admin.
+    /// * `OrbitHaulError::NotInitialized` - If contract is not initialized.
+    /// * `OrbitHaulError::Unauthorized` - If caller is not the admin.
     ///
     /// # Examples
     /// ```rust
     /// // contract.pause(&env, &admin);
     /// ```
-    pub fn pause(env: Env, admin: Address) -> Result<(), LumenError> {
+    pub fn pause(env: Env, admin: Address) -> Result<(), OrbitHaulError> {
         require_initialized(&env)?;
         admin.require_auth();
 
@@ -5501,17 +5501,17 @@ impl LumenShipment {
     /// * `admin` - The admin address unpausing the contract.
     ///
     /// # Returns
-    /// * `Result<(), LumenError>` - Ok if successfully unpaused.
+    /// * `Result<(), OrbitHaulError>` - Ok if successfully unpaused.
     ///
     /// # Errors
-    /// * `LumenError::NotInitialized` - If contract is not initialized.
-    /// * `LumenError::Unauthorized` - If caller is not the admin.
+    /// * `OrbitHaulError::NotInitialized` - If contract is not initialized.
+    /// * `OrbitHaulError::Unauthorized` - If caller is not the admin.
     ///
     /// # Examples
     /// ```rust
     /// // contract.unpause(&env, &admin);
     /// ```
-    pub fn unpause(env: Env, admin: Address) -> Result<(), LumenError> {
+    pub fn unpause(env: Env, admin: Address) -> Result<(), OrbitHaulError> {
         require_initialized(&env)?;
         admin.require_auth();
 
@@ -5530,16 +5530,16 @@ impl LumenShipment {
     /// * `env` - Execution environment.
     ///
     /// # Returns
-    /// * `Result<bool, LumenError>` - True if paused, false otherwise.
+    /// * `Result<bool, OrbitHaulError>` - True if paused, false otherwise.
     ///
     /// # Errors
-    /// * `LumenError::NotInitialized` - If contract is not initialized.
+    /// * `OrbitHaulError::NotInitialized` - If contract is not initialized.
     ///
     /// # Examples
     /// ```rust
     /// // let paused = contract.is_paused(&env)?;
     /// ```
-    pub fn is_paused(env: Env) -> Result<bool, LumenError> {
+    pub fn is_paused(env: Env) -> Result<bool, OrbitHaulError> {
         require_initialized(&env)?;
         Ok(storage::is_paused(&env))
     }
@@ -5553,12 +5553,12 @@ impl LumenShipment {
     /// * `status` - The status to retrieve the hash for.
     ///
     /// # Returns
-    /// * `Result<BytesN<32>, LumenError>` - The data hash recorded at that status.
+    /// * `Result<BytesN<32>, OrbitHaulError>` - The data hash recorded at that status.
     ///
     /// # Errors
-    /// * `LumenError::NotInitialized` - If contract is not initialized.
-    /// * `LumenError::ShipmentNotFound` - If the shipment doesn't exist.
-    /// * `LumenError::StatusHashNotFound` - If no hash was recorded for that status.
+    /// * `OrbitHaulError::NotInitialized` - If contract is not initialized.
+    /// * `OrbitHaulError::ShipmentNotFound` - If the shipment doesn't exist.
+    /// * `OrbitHaulError::StatusHashNotFound` - If no hash was recorded for that status.
     ///
     /// # Examples
     /// ```rust
@@ -5568,15 +5568,15 @@ impl LumenShipment {
         env: Env,
         shipment_id: u64,
         status: ShipmentStatus,
-    ) -> Result<BytesN<32>, LumenError> {
+    ) -> Result<BytesN<32>, OrbitHaulError> {
         require_initialized(&env)?;
 
         // Verify shipment exists
         if storage::get_shipment(&env, shipment_id).is_none() {
-            return Err(LumenError::ShipmentNotFound);
+            return Err(OrbitHaulError::ShipmentNotFound);
         }
 
-        storage::get_status_hash(&env, shipment_id, &status).ok_or(LumenError::StatusHashNotFound)
+        storage::get_status_hash(&env, shipment_id, &status).ok_or(OrbitHaulError::StatusHashNotFound)
     }
 
     /// Verify that a given data hash matches what was recorded on-chain for a
@@ -5590,13 +5590,13 @@ impl LumenShipment {
     /// * `expected_hash` - The hash to verify.
     ///
     /// # Returns
-    /// * `Result<bool, LumenError>` - True if the hash matches, false otherwise.
+    /// * `Result<bool, OrbitHaulError>` - True if the hash matches, false otherwise.
     ///
     /// # Errors
-    /// * `LumenError::NotInitialized` - If contract is not initialized.
-    /// * `LumenError::InvalidHash` - If expected_hash is all zeros.
-    /// * `LumenError::ShipmentNotFound` - If the shipment doesn't exist.
-    /// * `LumenError::StatusHashNotFound` - If no hash was recorded for that status.
+    /// * `OrbitHaulError::NotInitialized` - If contract is not initialized.
+    /// * `OrbitHaulError::InvalidHash` - If expected_hash is all zeros.
+    /// * `OrbitHaulError::ShipmentNotFound` - If the shipment doesn't exist.
+    /// * `OrbitHaulError::StatusHashNotFound` - If no hash was recorded for that status.
     ///
     /// # Examples
     /// ```rust
@@ -5607,7 +5607,7 @@ impl LumenShipment {
         shipment_id: u64,
         status: ShipmentStatus,
         expected_hash: BytesN<32>,
-    ) -> Result<bool, LumenError> {
+    ) -> Result<bool, OrbitHaulError> {
         require_initialized(&env)?;
 
         // Validate hash
@@ -5615,11 +5615,11 @@ impl LumenShipment {
 
         // Verify shipment exists
         if storage::get_shipment(&env, shipment_id).is_none() {
-            return Err(LumenError::ShipmentNotFound);
+            return Err(OrbitHaulError::ShipmentNotFound);
         }
 
         let stored_hash = storage::get_status_hash(&env, shipment_id, &status)
-            .ok_or(LumenError::StatusHashNotFound)?;
+            .ok_or(OrbitHaulError::StatusHashNotFound)?;
 
         Ok(stored_hash == expected_hash)
     }
@@ -5628,7 +5628,7 @@ impl LumenShipment {
     pub fn check_contract_health(
         env: Env,
         admin: Address,
-    ) -> Result<SystemHealthStatus, LumenError> {
+    ) -> Result<SystemHealthStatus, OrbitHaulError> {
         require_initialized(&env)?;
         admin.require_auth();
         require_admin_or_operator(&env, &admin)?;
@@ -5643,7 +5643,7 @@ impl LumenShipment {
     /// along with the configured TTL parameters and current ledger state.
     ///
     /// This is a read-only query; no auth is required.
-    pub fn get_ttl_health_summary(env: Env) -> Result<TtlHealthSummary, LumenError> {
+    pub fn get_ttl_health_summary(env: Env) -> Result<TtlHealthSummary, OrbitHaulError> {
         require_initialized(&env)?;
 
         let config = config::get_config(&env);
@@ -5681,7 +5681,7 @@ impl LumenShipment {
     ///
     /// Only callable by the admin. Use after confirming the token contract is healthy
     /// following a run of consecutive transfer failures.
-    pub fn reset_circuit_breaker(env: Env, admin: Address) -> Result<(), LumenError> {
+    pub fn reset_circuit_breaker(env: Env, admin: Address) -> Result<(), OrbitHaulError> {
         require_initialized(&env)?;
         circuit_breaker::manual_reset(&env, &admin)
     }
@@ -5703,16 +5703,16 @@ impl LumenShipment {
     /// * `admin` - Admin or operator address (auth required).
     ///
     /// # Returns
-    /// * `Result<Vec<ConsistencyViolation>, LumenError>` - List of detected violations.
+    /// * `Result<Vec<ConsistencyViolation>, OrbitHaulError>` - List of detected violations.
     ///   An empty vec means all invariants hold.
     ///
     /// # Errors
-    /// * `LumenError::NotInitialized` - If contract is not initialized.
-    /// * `LumenError::Unauthorized` - If caller is not admin or operator.
+    /// * `OrbitHaulError::NotInitialized` - If contract is not initialized.
+    /// * `OrbitHaulError::Unauthorized` - If caller is not admin or operator.
     pub fn check_consistency_violations(
         env: Env,
         admin: Address,
-    ) -> Result<soroban_sdk::Vec<ConsistencyViolation>, LumenError> {
+    ) -> Result<soroban_sdk::Vec<ConsistencyViolation>, OrbitHaulError> {
         require_initialized(&env)?;
         admin.require_auth();
         require_admin_or_operator(&env, &admin)?;
@@ -5734,15 +5734,15 @@ impl LumenShipment {
     /// * `carrier` - The carrier address to check.
     ///
     /// # Returns
-    /// * `Result<bool, LumenError>` - `true` if whitelisted and neither party suspended.
+    /// * `Result<bool, OrbitHaulError>` - `true` if whitelisted and neither party suspended.
     ///
     /// # Errors
-    /// * `LumenError::NotInitialized` - If contract is not initialized.
+    /// * `OrbitHaulError::NotInitialized` - If contract is not initialized.
     pub fn is_company_carrier_allowed(
         env: Env,
         company: Address,
         carrier: Address,
-    ) -> Result<bool, LumenError> {
+    ) -> Result<bool, OrbitHaulError> {
         require_initialized(&env)?;
         if !storage::is_carrier_whitelisted(&env, &company, &carrier) {
             return Ok(false);
@@ -5770,22 +5770,22 @@ impl LumenShipment {
     /// * `page_size` - Maximum whitelisted carriers to return (1–50).
     ///
     /// # Returns
-    /// * `Result<CarrierRelationshipPage, LumenError>` - Page of whitelisted carriers.
+    /// * `Result<CarrierRelationshipPage, OrbitHaulError>` - Page of whitelisted carriers.
     ///
     /// # Errors
-    /// * `LumenError::NotInitialized` - If contract is not initialized.
-    /// * `LumenError::InvalidConfig` - If `page_size` is 0 or > 50.
+    /// * `OrbitHaulError::NotInitialized` - If contract is not initialized.
+    /// * `OrbitHaulError::InvalidConfig` - If `page_size` is 0 or > 50.
     pub fn list_company_carriers(
         env: Env,
         company: Address,
         candidates: Vec<Address>,
         cursor: u32,
         page_size: u32,
-    ) -> Result<CarrierRelationshipPage, LumenError> {
+    ) -> Result<CarrierRelationshipPage, OrbitHaulError> {
         require_initialized(&env)?;
 
         if page_size == 0 || page_size > 50 {
-            return Err(LumenError::InvalidConfig);
+            return Err(OrbitHaulError::InvalidConfig);
         }
 
         let total = candidates.len();
@@ -5837,24 +5837,24 @@ impl LumenShipment {
     /// * `window_seconds` - Duration of the quota window in seconds.
     ///
     /// # Returns
-    /// * `Result<(), LumenError>` - Ok on success.
+    /// * `Result<(), OrbitHaulError>` - Ok on success.
     ///
     /// # Errors
-    /// * `LumenError::NotInitialized` - If contract is not initialized.
-    /// * `LumenError::Unauthorized` - If caller is not the admin.
-    /// * `LumenError::InvalidConfig` - If `window_seconds` is 0 when `max > 0`.
+    /// * `OrbitHaulError::NotInitialized` - If contract is not initialized.
+    /// * `OrbitHaulError::Unauthorized` - If caller is not the admin.
+    /// * `OrbitHaulError::InvalidConfig` - If `window_seconds` is 0 when `max > 0`.
     pub fn set_creation_quota(
         env: Env,
         admin: Address,
         max_per_window: u32,
         window_seconds: u64,
-    ) -> Result<(), LumenError> {
+    ) -> Result<(), OrbitHaulError> {
         require_initialized(&env)?;
         admin.require_auth();
         require_admin(&env, &admin)?;
 
         if max_per_window > 0 && window_seconds == 0 {
-            return Err(LumenError::InvalidConfig);
+            return Err(OrbitHaulError::InvalidConfig);
         }
 
         let mut cfg = config::get_config(&env);
@@ -5877,11 +5877,11 @@ impl LumenShipment {
     /// * `company` - The company address to query.
     ///
     /// # Returns
-    /// * `Result<(u32, u32), LumenError>` - `(used, remaining)` in the current window.
+    /// * `Result<(u32, u32), OrbitHaulError>` - `(used, remaining)` in the current window.
     ///
     /// # Errors
-    /// * `LumenError::NotInitialized` - If contract is not initialized.
-    pub fn get_creation_quota_status(env: Env, company: Address) -> Result<(u32, u32), LumenError> {
+    /// * `OrbitHaulError::NotInitialized` - If contract is not initialized.
+    pub fn get_creation_quota_status(env: Env, company: Address) -> Result<(u32, u32), OrbitHaulError> {
         require_initialized(&env)?;
         let cfg = config::get_config(&env);
 
@@ -5919,17 +5919,17 @@ impl LumenShipment {
     /// * `proposal_id` - The proposal whose digest to retrieve.
     ///
     /// # Returns
-    /// * `Result<ProposalActionDigest, LumenError>` - The stored digest record.
+    /// * `Result<ProposalActionDigest, OrbitHaulError>` - The stored digest record.
     ///
     /// # Errors
-    /// * `LumenError::NotInitialized` - If contract is not initialized.
-    /// * `LumenError::ProposalNotFound` - If the proposal or its digest does not exist.
+    /// * `OrbitHaulError::NotInitialized` - If contract is not initialized.
+    /// * `OrbitHaulError::ProposalNotFound` - If the proposal or its digest does not exist.
     pub fn get_proposal_action_digest(
         env: Env,
         proposal_id: u64,
-    ) -> Result<ProposalActionDigest, LumenError> {
+    ) -> Result<ProposalActionDigest, OrbitHaulError> {
         require_initialized(&env)?;
-        storage::get_proposal_digest(&env, proposal_id).ok_or(LumenError::ProposalNotFound)
+        storage::get_proposal_digest(&env, proposal_id).ok_or(OrbitHaulError::ProposalNotFound)
     }
 
     /// Compute the action digest for an `AdminAction` without storing it.
@@ -5979,31 +5979,31 @@ impl LumenShipment {
     /// * `readings`    - Up to 10 `IoTDataPoint` values per call.
     ///
     /// # Errors
-    /// * `LumenError::BatchTooLarge`     - More than 10 readings submitted.
-    /// * `LumenError::InvalidHash`       - Any data_hash is all-zeros.
-    /// * `LumenError::Unauthorized`      - Caller is not the assigned carrier.
-    /// * `LumenError::ShipmentNotFound`  - Shipment does not exist.
+    /// * `OrbitHaulError::BatchTooLarge`     - More than 10 readings submitted.
+    /// * `OrbitHaulError::InvalidHash`       - Any data_hash is all-zeros.
+    /// * `OrbitHaulError::Unauthorized`      - Caller is not the assigned carrier.
+    /// * `OrbitHaulError::ShipmentNotFound`  - Shipment does not exist.
     pub fn submit_iot_readings(
         env: Env,
         carrier: Address,
         shipment_id: u64,
         readings: Vec<IoTDataPoint>,
-    ) -> Result<(), LumenError> {
+    ) -> Result<(), OrbitHaulError> {
         require_initialized(&env)?;
         require_not_paused(&env)?;
         carrier.require_auth();
         require_role(&env, &carrier, Role::Carrier)?;
 
         if readings.len() > 10 {
-            return Err(LumenError::BatchTooLarge);
+            return Err(OrbitHaulError::BatchTooLarge);
         }
 
         let shipment =
-            storage::get_shipment(&env, shipment_id).ok_or(LumenError::ShipmentNotFound)?;
+            storage::get_shipment(&env, shipment_id).ok_or(OrbitHaulError::ShipmentNotFound)?;
         require_not_finalized(&shipment)?;
 
         if shipment.carrier != carrier {
-            return Err(LumenError::Unauthorized);
+            return Err(OrbitHaulError::Unauthorized);
         }
 
         let now = env.ledger().timestamp();
@@ -6029,19 +6029,19 @@ impl LumenShipment {
         env: Env,
         shipment_id: u64,
         index: u32,
-    ) -> Result<IoTDataPoint, LumenError> {
+    ) -> Result<IoTDataPoint, OrbitHaulError> {
         require_initialized(&env)?;
         if storage::get_shipment(&env, shipment_id).is_none() {
-            return Err(LumenError::ShipmentNotFound);
+            return Err(OrbitHaulError::ShipmentNotFound);
         }
-        storage::get_iot_reading(&env, shipment_id, index).ok_or(LumenError::ShipmentNotFound)
+        storage::get_iot_reading(&env, shipment_id, index).ok_or(OrbitHaulError::ShipmentNotFound)
     }
 
     /// Get the total number of IoT readings recorded for a shipment.
-    pub fn get_iot_reading_count(env: Env, shipment_id: u64) -> Result<u32, LumenError> {
+    pub fn get_iot_reading_count(env: Env, shipment_id: u64) -> Result<u32, OrbitHaulError> {
         require_initialized(&env)?;
         if storage::get_shipment(&env, shipment_id).is_none() {
-            return Err(LumenError::ShipmentNotFound);
+            return Err(OrbitHaulError::ShipmentNotFound);
         }
         Ok(storage::get_iot_reading_count(&env, shipment_id))
     }
@@ -6063,10 +6063,10 @@ impl LumenShipment {
     pub fn get_shipment_health_score(
         env: Env,
         shipment_id: u64,
-    ) -> Result<ShipmentHealthScore, LumenError> {
+    ) -> Result<ShipmentHealthScore, OrbitHaulError> {
         require_initialized(&env)?;
         let shipment =
-            storage::get_shipment(&env, shipment_id).ok_or(LumenError::ShipmentNotFound)?;
+            storage::get_shipment(&env, shipment_id).ok_or(OrbitHaulError::ShipmentNotFound)?;
 
         let now = env.ledger().timestamp();
         let breach_count = storage::get_breach_event_count(&env, shipment_id);
@@ -6122,7 +6122,7 @@ impl LumenShipment {
         shipment_id: u64,
         target_status: ShipmentStatus,
         reason_hash: BytesN<32>,
-    ) -> Result<(), LumenError> {
+    ) -> Result<(), OrbitHaulError> {
         recovery::recover_shipment(&env, &admin, shipment_id, target_status, &reason_hash)
     }
 
@@ -6131,7 +6131,7 @@ impl LumenShipment {
         admin: Address,
         shipment_id: u64,
         reason_hash: BytesN<32>,
-    ) -> Result<(), LumenError> {
+    ) -> Result<(), OrbitHaulError> {
         recovery::unlock_escrow(&env, &admin, shipment_id, &reason_hash)
     }
 
@@ -6140,7 +6140,7 @@ impl LumenShipment {
         admin: Address,
         shipment_id: u64,
         reason_hash: BytesN<32>,
-    ) -> Result<(), LumenError> {
+    ) -> Result<(), OrbitHaulError> {
         recovery::clear_finalization(&env, &admin, shipment_id, &reason_hash)
     }
 
@@ -6150,7 +6150,7 @@ impl LumenShipment {
         shipment_id: u64,
         previous_status: ShipmentStatus,
         reason_hash: BytesN<32>,
-    ) -> Result<(), LumenError> {
+    ) -> Result<(), OrbitHaulError> {
         recovery::rollback_on_external_failure(
             &env,
             &admin,
@@ -6206,7 +6206,7 @@ fn compute_action_digest(
 /// Returns `CreationQuotaExceeded` if the company has exhausted their quota
 /// for the current window. Rolls the window forward automatically when expired.
 /// No-ops when `creation_quota_max == 0` (quota disabled).
-fn check_and_update_creation_quota(env: &Env, company: &Address) -> Result<(), LumenError> {
+fn check_and_update_creation_quota(env: &Env, company: &Address) -> Result<(), OrbitHaulError> {
     let cfg = config::get_config(env);
     if cfg.creation_quota_max == 0 {
         return Ok(());
@@ -6226,7 +6226,7 @@ fn check_and_update_creation_quota(env: &Env, company: &Address) -> Result<(), L
     }
 
     if tracker.count >= cfg.creation_quota_max {
-        return Err(LumenError::CreationQuotaExceeded);
+        return Err(OrbitHaulError::CreationQuotaExceeded);
     }
 
     tracker.count = tracker.count.saturating_add(1);

@@ -7,7 +7,7 @@
 
 #![cfg(test)]
 
-use crate::{LumenShipment, LumenShipmentClient, OrbitHaulError, ShipmentStatus};
+use crate::{OrbitHaulShipment, OrbitHaulShipmentClient, OrbitHaulError, ShipmentStatus};
 use soroban_sdk::testutils::Address as _;
 use soroban_sdk::{contract, contractimpl, symbol_short, Address, BytesN, Env, Symbol, Vec};
 
@@ -26,10 +26,10 @@ impl MilestoneOrderToken {
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-fn setup() -> (Env, LumenShipmentClient<'static>, Address) {
+fn setup() -> (Env, OrbitHaulShipmentClient<'static>, Address) {
     let (env, admin) = crate::test_utils::setup_env();
     let token = env.register(MilestoneOrderToken, ());
-    let client = LumenShipmentClient::new(&env, &env.register(LumenShipment, ()));
+    let client = OrbitHaulShipmentClient::new(&env, &env.register(OrbitHaulShipment, ()));
     client.initialize(&admin, &token);
     (env, client, admin)
 }
@@ -42,7 +42,7 @@ fn data_hash(env: &Env, seed: u8) -> BytesN<32> {
 /// and an escrow deposit. Returns (shipment_id, company, carrier).
 fn create_milestone_shipment(
     env: &Env,
-    client: &LumenShipmentClient<'static>,
+    client: &OrbitHaulShipmentClient<'static>,
     admin: &Address,
 ) -> (u64, Address, Address) {
     let company = Address::generate(env);

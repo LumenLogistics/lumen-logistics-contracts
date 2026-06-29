@@ -1,4 +1,4 @@
-use crate::errors::LumenError;
+use crate::errors::OrbitHaulError;
 
 /// Broad category a contract error belongs to.
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
@@ -30,10 +30,10 @@ pub enum RetryGuidance {
     RetryAfterStateChange,
 }
 
-/// Structured metadata for a single `LumenError` variant.
+/// Structured metadata for a single `OrbitHaulError` variant.
 #[derive(Copy, Clone, Debug)]
 pub struct ContractErrorInfo {
-    pub error: LumenError,
+    pub error: OrbitHaulError,
     /// Numeric discriminant as exposed on-chain.
     pub code: u32,
     pub category: ErrorCategory,
@@ -42,7 +42,7 @@ pub struct ContractErrorInfo {
     pub message: &'static str,
 }
 
-/// Returns the `ContractErrorInfo` for the given `LumenError`.
+/// Returns the `ContractErrorInfo` for the given `OrbitHaulError`.
 ///
 /// Consumers (backends, frontends, indexers) call this to translate a raw
 /// contract error code into a category and retry decision without hard-coding
@@ -51,396 +51,396 @@ pub struct ContractErrorInfo {
 /// # Example
 /// ```rust
 /// use shipment::error_map::{error_info, RetryGuidance};
-/// use shipment::errors::LumenError;
+/// use shipment::errors::OrbitHaulError;
 ///
-/// let info = error_info(LumenError::RateLimitExceeded);
+/// let info = error_info(OrbitHaulError::RateLimitExceeded);
 /// assert_eq!(info.retry, RetryGuidance::RetryAfterDelay);
 /// ```
-pub fn error_info(error: LumenError) -> ContractErrorInfo {
+pub fn error_info(error: OrbitHaulError) -> ContractErrorInfo {
     use ErrorCategory::*;
     use RetryGuidance::*;
 
     let (code, category, retry, message) = match error {
-        LumenError::AlreadyInitialized => (
+        OrbitHaulError::AlreadyInitialized => (
             1,
             Configuration,
             NoRetry,
             "Contract is already initialised; call init only once.",
         ),
-        LumenError::NotInitialized => (
+        OrbitHaulError::NotInitialized => (
             2,
             Configuration,
             NoRetry,
             "Contract has not been initialised; call init first.",
         ),
-        LumenError::Unauthorized => (
+        OrbitHaulError::Unauthorized => (
             3,
             Unauthorized,
             NoRetry,
             "Caller does not hold the required role or signature.",
         ),
-        LumenError::ShipmentNotFound => (4, NotFound, NoRetry, "Shipment ID does not exist."),
-        LumenError::InvalidStatus => (
+        OrbitHaulError::ShipmentNotFound => (4, NotFound, NoRetry, "Shipment ID does not exist."),
+        OrbitHaulError::InvalidStatus => (
             5,
             InvalidState,
             RetryAfterStateChange,
             "State transition is not allowed from the current shipment status.",
         ),
-        LumenError::InvalidHash => (
+        OrbitHaulError::InvalidHash => (
             6,
             InvalidInput,
             NoRetry,
             "Provided data hash does not match the stored value.",
         ),
-        LumenError::EscrowLocked => (
+        OrbitHaulError::EscrowLocked => (
             7,
             InvalidState,
             RetryAfterStateChange,
             "Escrow is locked; wait for the shipment to reach a terminal state.",
         ),
-        LumenError::InsufficientFunds => (
+        OrbitHaulError::InsufficientFunds => (
             8,
             InvalidInput,
             NoRetry,
             "Caller balance is too low to cover the escrow deposit.",
         ),
-        LumenError::ShipmentAlreadyCompleted => (
+        OrbitHaulError::ShipmentAlreadyCompleted => (
             9,
             InvalidState,
             NoRetry,
             "Shipment is already in a terminal state (Delivered or Disputed).",
         ),
-        LumenError::InvalidTimestamp => (
+        OrbitHaulError::InvalidTimestamp => (
             10,
             InvalidInput,
             NoRetry,
             "Timestamp is invalid (e.g. ETA is in the past).",
         ),
-        LumenError::CounterOverflow => (
+        OrbitHaulError::CounterOverflow => (
             11,
             Transient,
             NoRetry,
             "Internal counter overflowed; contact the contract operator.",
         ),
-        LumenError::InvalidAmount => (
+        OrbitHaulError::InvalidAmount => (
             14,
             InvalidInput,
             NoRetry,
             "Amount must be a positive non-zero value.",
         ),
-        LumenError::ReentrancyDetected => (
+        OrbitHaulError::ReentrancyDetected => (
             15,
             InvalidState,
             RetryAfterDelay,
             "Reentrancy lock is active; retry once the current escrow operation completes.",
         ),
-        LumenError::BatchTooLarge => (
+        OrbitHaulError::BatchTooLarge => (
             16,
             LimitExceeded,
             NoRetry,
             "Batch exceeds the maximum allowed item count; split into smaller batches.",
         ),
-        LumenError::InvalidShipmentInput => (
+        OrbitHaulError::InvalidShipmentInput => (
             17,
             InvalidInput,
             NoRetry,
             "Shipment parameters are invalid (e.g. receiver equals carrier).",
         ),
-        LumenError::MilestoneSumInvalid => (
+        OrbitHaulError::MilestoneSumInvalid => (
             18,
             InvalidInput,
             NoRetry,
             "Milestone percentages must sum to exactly 100.",
         ),
-        LumenError::MilestoneAlreadyPaid => (
+        OrbitHaulError::MilestoneAlreadyPaid => (
             19,
             InvalidState,
             NoRetry,
             "This milestone has already been paid.",
         ),
-        LumenError::MetadataLimitExceeded => (
+        OrbitHaulError::MetadataLimitExceeded => (
             20,
             LimitExceeded,
             NoRetry,
             "Maximum of 5 metadata entries per shipment reached.",
         ),
-        LumenError::RateLimitExceeded => (
+        OrbitHaulError::RateLimitExceeded => (
             21,
             LimitExceeded,
             RetryAfterDelay,
             "Minimum interval between status updates has not elapsed; retry later.",
         ),
-        LumenError::ProposalNotFound => (
+        OrbitHaulError::ProposalNotFound => (
             22,
             NotFound,
             NoRetry,
             "Multi-sig proposal ID does not exist.",
         ),
-        LumenError::ProposalAlreadyExecuted => (
+        OrbitHaulError::ProposalAlreadyExecuted => (
             23,
             InvalidState,
             NoRetry,
             "Proposal has already been executed.",
         ),
-        LumenError::ProposalExpired => (
+        OrbitHaulError::ProposalExpired => (
             24,
             InvalidState,
             NoRetry,
             "Proposal has expired; create a new proposal.",
         ),
-        LumenError::AlreadyApproved => (
+        OrbitHaulError::AlreadyApproved => (
             25,
             InvalidState,
             NoRetry,
             "This admin has already approved the proposal.",
         ),
-        LumenError::InsufficientApprovals => (
+        OrbitHaulError::InsufficientApprovals => (
             26,
             InvalidState,
             RetryAfterStateChange,
             "Not enough admin approvals; wait for additional signers.",
         ),
-        LumenError::NotAnAdmin => (
+        OrbitHaulError::NotAnAdmin => (
             27,
             Unauthorized,
             NoRetry,
             "Caller is not in the admin list.",
         ),
-        LumenError::InvalidMultiSigConfig => (
+        OrbitHaulError::InvalidMultiSigConfig => (
             28,
             InvalidInput,
             NoRetry,
             "Multi-sig config is invalid (e.g. threshold exceeds admin count).",
         ),
-        LumenError::NotExpired => (
+        OrbitHaulError::NotExpired => (
             29,
             InvalidState,
             RetryAfterStateChange,
             "Shipment deadline has not yet passed; wait for expiry.",
         ),
-        LumenError::ShipmentLimitReached => (
+        OrbitHaulError::ShipmentLimitReached => (
             30,
             LimitExceeded,
             RetryAfterStateChange,
             "Company has reached its active shipment cap; close existing shipments first.",
         ),
-        LumenError::InvalidConfig => (
+        OrbitHaulError::InvalidConfig => (
             31,
             InvalidInput,
             NoRetry,
             "Configuration parameters are invalid.",
         ),
-        LumenError::CannotSelfRevoke => (
+        OrbitHaulError::CannotSelfRevoke => (
             32,
             InvalidInput,
             NoRetry,
             "An admin cannot revoke their own role; use transfer_admin instead.",
         ),
-        LumenError::CarrierSuspended => (
+        OrbitHaulError::CarrierSuspended => (
             33,
             Unauthorized,
             RetryAfterStateChange,
             "Carrier account is suspended; contact the contract operator.",
         ),
-        LumenError::ForceCancelReasonHashMissing => (
+        OrbitHaulError::ForceCancelReasonHashMissing => (
             34,
             InvalidInput,
             NoRetry,
             "Force-cancel requires a non-zero reason hash.",
         ),
-        LumenError::ArithmeticError => (
+        OrbitHaulError::ArithmeticError => (
             35,
             Transient,
             NoRetry,
             "Arithmetic overflow/underflow in escrow calculation; check amounts.",
         ),
-        LumenError::DisputeReasonHashMissing => (
+        OrbitHaulError::DisputeReasonHashMissing => (
             36,
             InvalidInput,
             NoRetry,
             "Dispute resolution requires a non-zero reason hash.",
         ),
-        LumenError::CompanySuspended => (
+        OrbitHaulError::CompanySuspended => (
             37,
             Unauthorized,
             RetryAfterStateChange,
             "Company account is suspended; contact the contract operator.",
         ),
-        LumenError::ShipmentFinalized => (
+        OrbitHaulError::ShipmentFinalized => (
             38,
             InvalidState,
             NoRetry,
             "Shipment is finalised and locked; no further mutations are allowed.",
         ),
-        LumenError::TokenTransferFailed => (
+        OrbitHaulError::TokenTransferFailed => (
             39,
             Transient,
             RetryAfterDelay,
             "Cross-contract token transfer failed; retry after verifying token contract state.",
         ),
-        LumenError::TokenMintFailed => (
+        OrbitHaulError::TokenMintFailed => (
             40,
             Transient,
             RetryAfterDelay,
             "Cross-contract token mint failed; retry after verifying token contract state.",
         ),
-        LumenError::DuplicateAction => (
+        OrbitHaulError::DuplicateAction => (
             41,
             InvalidInput,
             NoRetry,
             "Action hash was already processed within the idempotency window.",
         ),
-        LumenError::ShipmentUnavailable => (
+        OrbitHaulError::ShipmentUnavailable => (
             42,
             InvalidState,
             RetryAfterStateChange,
             "Shipment state is unavailable (archived or expired); restore before retrying.",
         ),
-        LumenError::ContractPaused => (
+        OrbitHaulError::ContractPaused => (
             43,
             InvalidState,
             RetryAfterStateChange,
             "Contract is paused; wait for the operator to resume operations.",
         ),
-        LumenError::StatusHashNotFound => (
+        OrbitHaulError::StatusHashNotFound => (
             44,
             NotFound,
             NoRetry,
             "No status hash found for the given shipment and status.",
         ),
-        LumenError::DataHashMismatch => (
+        OrbitHaulError::DataHashMismatch => (
             45,
             InvalidInput,
             NoRetry,
             "Provided hash does not match the stored hash; recompute and resubmit.",
         ),
-        LumenError::CircuitBreakerOpen => (
+        OrbitHaulError::CircuitBreakerOpen => (
             46,
             Transient,
             RetryAfterDelay,
             "Circuit breaker is open; token transfers are temporarily disabled.",
         ),
-        LumenError::InvalidMigrationEdge => (
+        OrbitHaulError::InvalidMigrationEdge => (
             47,
             InvalidInput,
             NoRetry,
             "Migration version transition is not permitted.",
         ),
-        LumenError::MilestoneLimitExceeded => (
+        OrbitHaulError::MilestoneLimitExceeded => (
             48,
             LimitExceeded,
             NoRetry,
             "Maximum milestone events per shipment reached.",
         ),
-        LumenError::NoteLimitExceeded => (
+        OrbitHaulError::NoteLimitExceeded => (
             49,
             LimitExceeded,
             NoRetry,
             "Maximum note events per shipment reached.",
         ),
-        LumenError::EvidenceLimitExceeded => (
+        OrbitHaulError::EvidenceLimitExceeded => (
             50,
             LimitExceeded,
             NoRetry,
             "Maximum evidence entries per dispute reached.",
         ),
-        LumenError::BreachLimitExceeded => (
+        OrbitHaulError::BreachLimitExceeded => (
             51,
             LimitExceeded,
             NoRetry,
             "Maximum condition breach events per shipment reached.",
         ),
-        LumenError::InvalidTokenDecimals => (
+        OrbitHaulError::InvalidTokenDecimals => (
             52,
             InvalidInput,
             NoRetry,
             "Token decimals do not match the expected value (7); use a Stellar-standard token.",
         ),
-        LumenError::CreationQuotaExceeded => (
+        OrbitHaulError::CreationQuotaExceeded => (
             53,
             LimitExceeded,
             RetryAfterStateChange,
             "Company has exceeded the shipment creation quota for the current time window.",
         ),
-        LumenError::DependenciesNotMet => (
+        OrbitHaulError::DependenciesNotMet => (
             54,
             InvalidState,
             RetryAfterStateChange,
             "Shipment cannot transition to InTransit or Delivered because its prerequisite shipments are not yet completed.",
         ),
-        LumenError::CircularDependency => (
+        OrbitHaulError::CircularDependency => (
             55,
             InvalidInput,
             NoRetry,
             "A circular dependency was detected in the shipment prerequisites.",
         ),
-        LumenError::ProposalSaltReused => (
+        OrbitHaulError::ProposalSaltReused => (
             56,
             InvalidInput,
             NoRetry,
             "Proposal salt was already used in a prior proposal; replay attack prevented.",
         ),
-        LumenError::InvalidShipmentParticipants => (
+        OrbitHaulError::InvalidShipmentParticipants => (
             57,
             InvalidInput,
             NoRetry,
             "Shipment sender, receiver, and carrier must be three distinct addresses.",
         ),
-        LumenError::InvalidShipmentDeadline => (
+        OrbitHaulError::InvalidShipmentDeadline => (
             58,
             InvalidInput,
             NoRetry,
             "Shipment deadline must be strictly in the future.",
         ),
-        LumenError::InvalidPaymentMilestones => (
+        OrbitHaulError::InvalidPaymentMilestones => (
             59,
             InvalidInput,
             NoRetry,
             "Payment milestone structure is invalid; each percentage must be 1-100.",
         ),
-        LumenError::DuplicatePaymentMilestone => (
+        OrbitHaulError::DuplicatePaymentMilestone => (
             60,
             InvalidInput,
             NoRetry,
             "Payment milestone checkpoint names must be unique.",
         ),
-        LumenError::InvalidTokenAddress => (
+        OrbitHaulError::InvalidTokenAddress => (
             61,
             InvalidInput,
             NoRetry,
             "Shipment token address is invalid for this shipment.",
         ),
-        LumenError::InvalidPaymentMilestoneName => (
+        OrbitHaulError::InvalidPaymentMilestoneName => (
             62,
             InvalidInput,
             NoRetry,
             "Payment milestone checkpoint name has an invalid format.",
         ),
-        LumenError::MetadataSymbolCollision => (
+        OrbitHaulError::MetadataSymbolCollision => (
             63,
             InvalidInput,
             NoRetry,
             "Metadata key and value symbols are identical; use distinct symbols.",
         ),
-        LumenError::ExternalIntegrationFailed => (
+        OrbitHaulError::ExternalIntegrationFailed => (
             64,
             Transient,
             RetryAfterDelay,
             "External integration failed (e.g. backend token release); retry or rollback the state.",
         ),
-        LumenError::InvalidSymbol => (
+        OrbitHaulError::InvalidSymbol => (
             65,
             InvalidInput,
             NoRetry,
             "The provided symbol is empty or invalid.",
         ),
-        LumenError::NoteNotFound => (
+        OrbitHaulError::NoteNotFound => (
             66,
             NotFound,
             NoRetry,
             "Note not found or index out of bounds.",
         ),
-        LumenError::EvidenceNotFound => (
+        OrbitHaulError::EvidenceNotFound => (
             67,
             NotFound,
             NoRetry,
@@ -460,14 +460,14 @@ pub fn error_info(error: LumenError) -> ContractErrorInfo {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::errors::LumenError;
+    use crate::errors::OrbitHaulError;
 
     // ── Token transfer failure recovery — error mapping (issue #447) ─────────
 
     #[test]
     fn test_token_transfer_failed_info() {
-        let info = error_info(LumenError::TokenTransferFailed);
-        assert_eq!(info.error, LumenError::TokenTransferFailed);
+        let info = error_info(OrbitHaulError::TokenTransferFailed);
+        assert_eq!(info.error, OrbitHaulError::TokenTransferFailed);
         assert_eq!(info.code, 39);
         assert_eq!(info.category, ErrorCategory::Transient);
         assert_eq!(info.retry, RetryGuidance::RetryAfterDelay);
@@ -479,8 +479,8 @@ mod tests {
 
     #[test]
     fn test_circuit_breaker_open_info() {
-        let info = error_info(LumenError::CircuitBreakerOpen);
-        assert_eq!(info.error, LumenError::CircuitBreakerOpen);
+        let info = error_info(OrbitHaulError::CircuitBreakerOpen);
+        assert_eq!(info.error, OrbitHaulError::CircuitBreakerOpen);
         assert_eq!(info.code, 46);
         assert_eq!(info.category, ErrorCategory::Transient);
         assert_eq!(info.retry, RetryGuidance::RetryAfterDelay);
@@ -490,15 +490,15 @@ mod tests {
     /// must return identical results.
     #[test]
     fn test_error_info_is_deterministic() {
-        let a = error_info(LumenError::TokenTransferFailed);
-        let b = error_info(LumenError::TokenTransferFailed);
+        let a = error_info(OrbitHaulError::TokenTransferFailed);
+        let b = error_info(OrbitHaulError::TokenTransferFailed);
         assert_eq!(a.code, b.code);
         assert_eq!(a.category, b.category);
         assert_eq!(a.retry, b.retry);
         assert_eq!(a.message, b.message);
 
-        let c = error_info(LumenError::CircuitBreakerOpen);
-        let d = error_info(LumenError::CircuitBreakerOpen);
+        let c = error_info(OrbitHaulError::CircuitBreakerOpen);
+        let d = error_info(OrbitHaulError::CircuitBreakerOpen);
         assert_eq!(c.code, d.code);
         assert_eq!(c.category, d.category);
         assert_eq!(c.retry, d.retry);
@@ -509,9 +509,9 @@ mod tests {
     #[test]
     fn test_token_and_circuit_breaker_errors_use_retry_after_delay() {
         let transient_errors = [
-            LumenError::TokenTransferFailed,
-            LumenError::TokenMintFailed,
-            LumenError::CircuitBreakerOpen,
+            OrbitHaulError::TokenTransferFailed,
+            OrbitHaulError::TokenMintFailed,
+            OrbitHaulError::CircuitBreakerOpen,
         ];
         for err in &transient_errors {
             let info = error_info(*err);
@@ -530,16 +530,16 @@ mod tests {
         }
     }
 
-    /// Every error code in error_info must match its LumenError discriminant.
+    /// Every error code in error_info must match its OrbitHaulError discriminant.
     #[test]
     fn test_error_codes_match_discriminants() {
-        let cases: &[(LumenError, u32)] = &[
-            (LumenError::TokenTransferFailed, 39),
-            (LumenError::TokenMintFailed, 40),
-            (LumenError::CircuitBreakerOpen, 46),
-            (LumenError::ShipmentFinalized, 38),
-            (LumenError::ShipmentNotFound, 4),
-            (LumenError::Unauthorized, 3),
+        let cases: &[(OrbitHaulError, u32)] = &[
+            (OrbitHaulError::TokenTransferFailed, 39),
+            (OrbitHaulError::TokenMintFailed, 40),
+            (OrbitHaulError::CircuitBreakerOpen, 46),
+            (OrbitHaulError::ShipmentFinalized, 38),
+            (OrbitHaulError::ShipmentNotFound, 4),
+            (OrbitHaulError::Unauthorized, 3),
         ];
         for (err, expected_code) in cases {
             let info = error_info(*err);
@@ -558,8 +558,8 @@ mod tests {
     /// guidance — the caller must fix their role before retrying.
     #[test]
     fn test_unauthorized_error_info() {
-        let info = error_info(LumenError::Unauthorized);
-        assert_eq!(info.error, LumenError::Unauthorized);
+        let info = error_info(OrbitHaulError::Unauthorized);
+        assert_eq!(info.error, OrbitHaulError::Unauthorized);
         assert_eq!(info.code, 3);
         assert_eq!(info.category, ErrorCategory::Unauthorized);
         assert_eq!(info.retry, RetryGuidance::NoRetry);
@@ -574,8 +574,8 @@ mod tests {
     /// with `NoRetry` — joining the admin list requires admin action, not a retry.
     #[test]
     fn test_not_an_admin_error_info() {
-        let info = error_info(LumenError::NotAnAdmin);
-        assert_eq!(info.error, LumenError::NotAnAdmin);
+        let info = error_info(OrbitHaulError::NotAnAdmin);
+        assert_eq!(info.error, OrbitHaulError::NotAnAdmin);
         assert_eq!(info.code, 27);
         assert_eq!(info.category, ErrorCategory::Unauthorized);
         assert_eq!(info.retry, RetryGuidance::NoRetry);
@@ -587,7 +587,7 @@ mod tests {
     /// can classify them without switching on individual variants.
     #[test]
     fn test_auth_mismatch_errors_map_to_unauthorized_category() {
-        let auth_errors = [LumenError::Unauthorized, LumenError::NotAnAdmin];
+        let auth_errors = [OrbitHaulError::Unauthorized, OrbitHaulError::NotAnAdmin];
         for err in &auth_errors {
             let info = error_info(*err);
             assert_eq!(
@@ -609,15 +609,15 @@ mod tests {
     /// variants must return identical metadata.
     #[test]
     fn test_auth_error_info_is_deterministic() {
-        let a = error_info(LumenError::Unauthorized);
-        let b = error_info(LumenError::Unauthorized);
+        let a = error_info(OrbitHaulError::Unauthorized);
+        let b = error_info(OrbitHaulError::Unauthorized);
         assert_eq!(a.code, b.code);
         assert_eq!(a.category, b.category);
         assert_eq!(a.retry, b.retry);
         assert_eq!(a.message, b.message);
 
-        let c = error_info(LumenError::NotAnAdmin);
-        let d = error_info(LumenError::NotAnAdmin);
+        let c = error_info(OrbitHaulError::NotAnAdmin);
+        let d = error_info(OrbitHaulError::NotAnAdmin);
         assert_eq!(c.code, d.code);
         assert_eq!(c.category, d.category);
         assert_eq!(c.retry, d.retry);

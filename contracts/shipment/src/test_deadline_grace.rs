@@ -279,7 +279,7 @@ mod tests {
     /// ShipmentAlreadyCompleted regardless of the grace period.
     #[test]
     fn check_deadline_on_already_cancelled_shipment_returns_already_completed() {
-        use crate::LumenError;
+        use crate::OrbitHaulError;
         let (env, client, admin) = setup();
         let now = env.ledger().timestamp();
         let deadline = now + 1000;
@@ -297,7 +297,7 @@ mod tests {
         let result = client.try_check_deadline(&id);
         assert_eq!(
             result,
-            Err(Ok(LumenError::ShipmentAlreadyCompleted)),
+            Err(Ok(OrbitHaulError::ShipmentAlreadyCompleted)),
             "check_deadline on an already-cancelled shipment must return ShipmentAlreadyCompleted"
         );
     }
@@ -308,7 +308,7 @@ mod tests {
     /// ShipmentNotFound.
     #[test]
     fn check_deadline_on_non_existent_shipment_returns_not_found() {
-        use crate::LumenError;
+        use crate::OrbitHaulError;
         let (env, client, _admin) = setup();
 
         // Advance past any possible deadline.
@@ -317,7 +317,7 @@ mod tests {
         let result = client.try_check_deadline(&9999u64);
         assert_eq!(
             result,
-            Err(Ok(LumenError::ShipmentNotFound)),
+            Err(Ok(OrbitHaulError::ShipmentNotFound)),
             "check_deadline on a non-existent shipment must return ShipmentNotFound"
         );
     }

@@ -1,235 +1,113 @@
-#OrbitHaul - Decentralized Delivery Tracking Platform
+# OrbitHaul Smart Contracts 🛰️📦
+> **Soroban smart contracts powering immutable logistics tracking and automated settlements for OrbitHaul.**
 
-[![CI](https://github.com/OrbitHaul/Orbit-Haul-contracts/actions/workflows/test.yml/badge.svg)](https://github.com/OrbitHaul/Orbit-Haul-contracts/actions)
-
-**OrbitHaul** is a decentralized delivery tracking platform built on the Stellar blockchain. It empowers corporations and logistics companies to track foodstuff and other deliverable items in real-time with complete transparency and security.
-
-## Overview
-
-In today's supply chain ecosystem, transparency and accountability are critical. Lumen Logistics leverages Stellar's fast, low-cost blockchain infrastructure to provide:
-
-- **Real-time Tracking**: Monitor deliveries from origin to destination
-- **Transparent Operations**: All stakeholders can verify delivery status on-chain
-- **Secure Data**: Cryptographically secured delivery records and proof of custody
-- **Cost-Effective**: Built on Stellar's efficient blockchain infrastructure
-- **Scalable**: Designed to handle high-volume delivery operations
-
-## Use Cases
-
-- Food delivery tracking and verification
-- Pharmaceutical supply chain management
-- Perishable goods monitoring
-- Multi-party logistics coordination
-- Proof of delivery and custody chain
-
-## Project Structure
-
-This repository contains Soroban smart contracts for the Lumen Logistics platform:
-
-```text
-.
-├── contracts
-│   ├── shipment            # Core logistics and escrow contract
-│   │   ├── src
-│   │   │   ├── lib.rs      # Main shipment logic
-│   │   │   ├── storage.rs  # Data persistence helpers
-│   │   │   ├── events.rs   # Hash-and-Emit event publishing
-│   │   │   ├── types.rs    # Domain models and storage keys
-│   │   │   └── test.rs     # Contract tests
-│   │   └── Cargo.toml
-│   └── token               # Payment token contract
-│       ├── src
-│       │   ├── lib.rs      # Token entrypoints
-│       │   ├── storage.rs  # Balance and allowance storage
-│       │   ├── types.rs    # Token types
-│       │   └── test.rs     # Token tests
-│       └── Cargo.toml
-├── Cargo.toml              # Workspace configuration
-├── Makefile                # Build and test commands
-├── CONTRIBUTING.md         # Contribution guidelines
-└── README.md
-```
-
-## Quick Start
-
-### Prerequisites
-
-- [Rust](https://www.rust-lang.org/tools/install) (latest stable)
-- [Stellar CLI](https://developers.stellar.org/docs/build/smart-contracts/getting-started/setup)
-- Make (optional, for convenience commands)
-
-### Installation
-
-```bash
-# Fork the repository
-# Then clone your fork into your local environment
-git clone https://github.com/OrbitHaul/Orbit-Haul-contracts.git
-cd Orbit-Haul-contracts
-
-# Add wasm32 target
-rustup target add wasm32-unknown-unknown
-```
-
-### Build
-
-```bash
-# Using Make
-make build
-```
-
-OR
-
-```
-# Using cargo
-cargo build --target wasm32-unknown-unknown --release
-```
-
-```
-# Or directly with Stellar CLI
-stellar contract build
-```
-
-### Test
-
-```bash
-# Run all tests
-make test
-
-# Or directly with cargo
-cargo test
-```
-
-### Format & Lint
-
-```bash
-# Format code
-make fmt
-```
-
-```
-# OR
-cargo fmt
-```
-
-```
-# Check formatting
-make fmt-check
-```
-
-```
-# OR
-cargo check --all
-```
-
-```
-# Run clippy lints
-make lint
-```
-
-## Development
-
-For detailed contribution guidelines, please see [CONTRIBUTING.md](CONTRIBUTING.md).
-
-### Running Locally
-
-1. Build the contracts:
-
-   ```bash
-   make build
-   ```
-
-2. Run tests:
-
-   ```bash
-   make test
-   ```
-
-3. Deploy to local network:
-
-   ```bash
-   make deploy-local
-   ```
-
-## Deployment
-
-For deploying contracts to Stellar testnet, see the [Deployment Guide](docs/deployment.md).
-
-Quick deployment:
-
-```bash
-# Build contracts
-./scripts/build.sh
-
-# Deploy to testnet
-./scripts/deploy-testnet.sh
-
-# Initialize contracts
-./scripts/init-testnet.sh
-```
-
-## Documentation
-
-### Frontend Integration
-
-- **[Freighter Integration Checklist](docs/freighter-integration-checklist.md)** - End-to-end checklist for frontend teams: preflight checks, signing, error handling, on-chain verification, and common failure modes
-- **[Client Examples](docs/client-examples.md)** - Copy-paste Rust contract call shapes for common shipment operations
-
-### Operational Guides
-
-- **[TTL Maintenance Playbook](contracts/shipment/docs/TTL_MAINTENANCE_PLAYBOOK.md)** - Complete operational procedures for maintaining contract state TTL health, including routine maintenance, monitoring, and emergency response
-- **[TTL Quick Reference](contracts/shipment/docs/TTL_QUICK_REFERENCE.md)** - Quick reference card for common TTL operations and emergency procedures
-- **[TTL Health Summary](contracts/shipment/docs/TTL_HEALTH_SUMMARY.md)** - Technical documentation for the TTL health monitoring query
-
-### For Operators
-
-If you're responsible for maintaining a deployed Lumen Logistics contract:
-
-1. **Start here**: [TTL Quick Reference](contracts/shipment/docs/TTL_QUICK_REFERENCE.md) for common operations
-2. **Deep dive**: [TTL Maintenance Playbook](contracts/shipment/docs/TTL_MAINTENANCE_PLAYBOOK.md) for complete procedures
-3. **Set up monitoring**: Follow the automated monitoring setup in the playbook
-4. **Emergency response**: Keep the quick reference handy for incident response
-
-## Architecture
-
-Lumen Logistics' smart contracts handle:
-
-- **Asset Management**: Secure storage and transfer of delivery tokens
-- **Access Control**: Role-based permissions for different stakeholders
-- **Transaction Logging**: Immutable audit trail of all operations
-- **Asset Locking**: Time-based locks for escrow and guarantees
-- **TTL Management**: Automated state persistence with configurable TTL thresholds
-
-## Technology Stack
-
-- **Blockchain**: Stellar (Soroban smart contracts)
-- **Language**: Rust
-- **SDK**: Soroban SDK v22.0.0
-- **Testing**: Soroban test utilities
-
-## Contributing
-
-We welcome contributions! Please see our [CONTRIBUTING.md](CONTRIBUTING.md) for details on:
-
-- Setting up your development environment
-- Code style and standards
-- Testing requirements
-- Submitting pull requests
-
-## Security
-
-Security is paramount for Lumen Logistics. If you discover a security vulnerability, please email <security@orbithaul.io> instead of using the issue tracker.
-
-## Resources
-
-- [Stellar Documentation](https://developers.stellar.org/)
-- [Soroban Smart Contracts](https://soroban.stellar.org/)
-- [Stellar CLI Reference](https://developers.stellar.org/docs/tools/developer-tools)
-
-## Community
-
-- [Twitter](https://twitter.com/orbithaul)
-- [Telegram Group Chat](https://t.me/orbithaul)
+This repository contains the core on-chain logic for the OrbitHaul platform. Written in Rust and deployed on the Stellar network via Soroban, these contracts handle the secure escrow of funds, tokenized shipment creation, and automated payouts triggered by verified supply chain milestones.
 
 ---
 
-**Built with ❤️ on Stellar**
+## ✨ Features
+
+*   **Automated Escrow:** Securely lock funds upon shipment creation and automatically release them to carriers upon successful delivery verification.
+*   **Immutable Milestone Tracking:** Record transit events (e.g., picked up, at customs, delivered) directly on-chain for tamper-proof visibility.
+*   **Role-Based Access Control:** Strict authorization checks to ensure only assigned shippers, carriers, and receivers can update shipment statuses.
+*   **Stellar Network Integration:** Optimized for low fees and high throughput using the Soroban environment.
+
+## 🛠 Tech Stack
+
+*   **Language:** Rust
+*   **Smart Contract Environment:** Soroban (Stellar)
+*   **Testing:** Rust native test framework `#[cfg(test)]`
+
+## 🚀 Getting Started
+
+### Prerequisites
+
+To build and test the contracts locally, you will need to set up your Rust and Soroban development environment:
+
+1.  **Install Rust:**
+    ```bash
+    curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+    ```
+
+2.  **Add the WebAssembly target:**
+    ```bash
+    rustup target add wasm32-unknown-unknown
+    ```
+
+3.  **Install the Soroban CLI:**
+    ```bash
+    cargo install --locked soroban-cli
+    ```
+
+### Building the Contracts
+
+To compile the smart contracts into WebAssembly (`.wasm`) binaries optimized for deployment:
+
+```bash
+cargo build --target wasm32-unknown-unknown --release
+```
+
+To optimize the build further for deployment (minimizing the `.wasm` file size):
+
+```bash
+soroban contract optimize --wasm target/wasm32-unknown-unknown/release/orbithaul_contracts.wasm
+```
+
+### Running Tests
+
+Run the native Rust test suite to ensure all escrow and milestone logic is functioning correctly before deployment:
+
+```bash
+cargo test
+```
+
+## 📦 Deployment
+
+You can deploy the optimized `.wasm` file to the Stellar Testnet using the Soroban CLI.
+
+1. Generate a Testnet identity (if you don't have one):
+
+```bash
+soroban config identity generate admin
+soroban config network add --global testnet \
+  --rpc-url https://soroban-testnet.stellar.org:443 \
+  --network-passphrase "Test SDF Network ; September 2015"
+```
+
+2. Deploy the contract:
+
+```bash
+soroban contract deploy \
+  --wasm target/wasm32-unknown-unknown/release/orbithaul_contracts.wasm \
+  --source admin \
+  --network testnet
+```
+
+> Make sure to save the outputted Contract ID to use in the OrbitHaul frontend and backend services!
+
+## 🏗 Repository Structure
+
+```
+├── Cargo.toml          # Rust dependencies and workspace configuration
+├── src/
+│   ├── lib.rs          # Contract entry point and public interface
+│   ├── escrow.rs       # Logic for locking and releasing funds
+│   ├── storage.rs      # Data structures for state management
+│   ├── events.rs       # Contract event emissions for the indexer
+│   └── test.rs         # Unit and integration tests
+└── README.md           # Project documentation
+```
+
+## 🤝 Contributing
+
+Contributions make the open-source community an amazing place to learn, inspire, and create. Any contributions you make are greatly appreciated.
+
+1. Fork the Project
+2. Create your Feature Branch (`git checkout -b feature/SmartEscrow`)
+3. Commit your Changes (`git commit -m 'Add SmartEscrow feature'`)
+4. Push to the Branch (`git push origin feature/SmartEscrow`)
+5. Open a Pull Request
+
+## 📄 License
+
+Distributed under the MIT License. See `LICENSE` for more information.

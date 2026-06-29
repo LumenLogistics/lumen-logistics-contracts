@@ -1,4 +1,4 @@
-use crate::{LumenShipment, LumenShipmentClient, ShipmentStatus};
+use crate::{OrbitHaulShipment, OrbitHaulShipmentClient, ShipmentStatus};
 use soroban_sdk::{testutils::Address as _, Address, BytesN, Env, Symbol, Vec};
 
 #[soroban_sdk::contract]
@@ -12,11 +12,11 @@ impl MockToken {
     pub fn transfer(_env: Env, _from: Address, _to: Address, _amount: i128) {}
 }
 
-fn setup_shipment_env() -> (Env, LumenShipmentClient<'static>, Address, Address) {
+fn setup_shipment_env() -> (Env, OrbitHaulShipmentClient<'static>, Address, Address) {
     let (env, admin) = crate::test_utils::setup_env();
 
     let token_contract = env.register(MockToken {}, ());
-    let client = LumenShipmentClient::new(&env, &env.register(LumenShipment, ()));
+    let client = OrbitHaulShipmentClient::new(&env, &env.register(OrbitHaulShipment, ()));
 
     (env, client, admin, token_contract)
 }
@@ -142,7 +142,7 @@ fn test_mutation_rejected_after_finalization() {
 /// Returns (shipment_id, company, receiver, carrier, data_hash).
 fn create_and_finalize(
     env: &Env,
-    client: &LumenShipmentClient<'static>,
+    client: &OrbitHaulShipmentClient<'static>,
     admin: &Address,
     token_contract: &Address,
 ) -> (u64, Address, Address, Address, BytesN<32>) {

@@ -514,7 +514,7 @@ fn test_arithmetic_error_surfaced_on_underflow() {
     );
     assert_eq!(
         result,
-        Err(crate::LumenError::ArithmeticError),
+        Err(crate::OrbitHaulError::ArithmeticError),
         "Should return ArithmeticError for underflow"
     );
 }

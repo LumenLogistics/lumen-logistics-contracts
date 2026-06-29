@@ -77,6 +77,8 @@ fn test_create_shipments_batch_rollback() {
         data_hash: data_hash.clone(),
         payment_milestones: Vec::new(&env),
         deadline,
+        priority: crate::types::ShipmentPriority::Standard,
+        sla_seconds: None,
     });
     // 2nd invalid shipment (receiver == carrier)
     shipments.push_back(ShipmentInput {
@@ -85,6 +87,8 @@ fn test_create_shipments_batch_rollback() {
         data_hash: data_hash.clone(),
         payment_milestones: Vec::new(&env),
         deadline,
+        priority: crate::types::ShipmentPriority::Standard,
+        sla_seconds: None,
     });
 
     // Initial state check

@@ -99,6 +99,8 @@ fn test_batch_creation_10_within_budget() {
             data_hash: dummy_hash(&ctx.env, seed),
             payment_milestones: Vec::new(&ctx.env),
             deadline,
+            priority: crate::types::ShipmentPriority::Standard,
+            sla_seconds: None,
         });
     }
 
@@ -147,6 +149,8 @@ fn test_batch_cheaper_per_item_than_individual_calls() {
             data_hash: dummy_hash(&ctx_batch.env, seed),
             payment_milestones: Vec::new(&ctx_batch.env),
             deadline: deadline_b,
+            priority: crate::types::ShipmentPriority::Standard,
+            sla_seconds: None,
         });
     }
     ctx_batch.env.cost_estimate().budget().reset_unlimited();

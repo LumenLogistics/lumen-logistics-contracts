@@ -194,6 +194,8 @@ fn test_batch_creation_5_items_succeeds() {
             data_hash: dummy_hash(&ctx.env, seed),
             payment_milestones: Vec::new(&ctx.env),
             deadline,
+            priority: crate::types::ShipmentPriority::Standard,
+            sla_seconds: None,
         });
     }
     let ids = ctx.client.create_shipments_batch(&ctx.company, &inputs);
@@ -735,6 +737,8 @@ fn test_batch_creation_does_not_call_token_contract() {
             data_hash: dummy_hash(&ctx.env, seed),
             payment_milestones: Vec::new(&ctx.env),
             deadline,
+            priority: crate::types::ShipmentPriority::Standard,
+            sla_seconds: None,
         });
     }
     let ids = ctx.client.create_shipments_batch(&ctx.company, &inputs);

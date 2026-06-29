@@ -227,6 +227,8 @@ mod tests {
                 data_hash: make_hash(&env, seed),
                 payment_milestones: soroban_sdk::Vec::new(&env),
                 deadline,
+                priority: crate::types::ShipmentPriority::Standard,
+                sla_seconds: None,
             });
         }
 

@@ -3,9 +3,9 @@
 /// This module verifies that the ActorQuota sliding window tracker correctly
 /// replenishes available quotas when queried after the window duration has
 /// fully reset in the ledger clock.
-
 #[cfg(test)]
 mod actor_quota_tests {
+    extern crate std;
     use crate::rate_limit::{QuotaTracker, RateLimitConfig};
 
     /// Test that ActorQuota replenishes when window expires with exact boundary crossing.

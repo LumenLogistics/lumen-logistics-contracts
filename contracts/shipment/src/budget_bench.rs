@@ -165,6 +165,8 @@ fn bench_create_shipments_batch() {
             data_hash: BytesN::from_array(&env, &[i + 1; 32]),
             payment_milestones: SorobanVec::new(&env),
             deadline,
+            priority: crate::types::ShipmentPriority::Standard,
+            sla_seconds: None,
         });
     }
 

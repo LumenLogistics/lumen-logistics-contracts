@@ -285,6 +285,8 @@ fn test_create_shipments_batch_success() {
             data_hash: BytesN::from_array(&env, &[i as u8; 32]),
             payment_milestones: soroban_sdk::Vec::new(&env),
             deadline,
+            priority: crate::types::ShipmentPriority::Standard,
+            sla_seconds: None,
         });
     }
 
@@ -314,6 +316,8 @@ fn test_create_shipments_batch_oversized() {
             data_hash: BytesN::from_array(&env, &[i as u8; 32]),
             payment_milestones: soroban_sdk::Vec::new(&env),
             deadline,
+            priority: crate::types::ShipmentPriority::Standard,
+            sla_seconds: None,
         });
     }
 
@@ -337,6 +341,8 @@ fn test_create_shipments_batch_invalid_input() {
         data_hash: BytesN::from_array(&env, &[1u8; 32]),
         payment_milestones: soroban_sdk::Vec::new(&env),
         deadline,
+        priority: crate::types::ShipmentPriority::Standard,
+        sla_seconds: None,
     });
     let user = Address::generate(&env);
     shipments.push_back(ShipmentInput {
@@ -345,6 +351,8 @@ fn test_create_shipments_batch_invalid_input() {
         data_hash: BytesN::from_array(&env, &[2u8; 32]),
         payment_milestones: soroban_sdk::Vec::new(&env),
         deadline,
+        priority: crate::types::ShipmentPriority::Standard,
+        sla_seconds: None,
     });
 
     client.create_shipments_batch(&company, &shipments);
@@ -6119,6 +6127,8 @@ fn test_analytics_batch_and_cancel() {
             data_hash: BytesN::from_array(&env, &[i as u8; 32]),
             payment_milestones: soroban_sdk::Vec::new(&env),
             deadline,
+            priority: crate::types::ShipmentPriority::Standard,
+            sla_seconds: None,
         });
     }
     client.create_shipments_batch(&company, &shipments);
@@ -6710,6 +6720,8 @@ fn test_batch_limit_reached() {
             data_hash: BytesN::from_array(&env, &[i as u8; 32]),
             payment_milestones: soroban_sdk::Vec::new(&env),
             deadline,
+            priority: crate::types::ShipmentPriority::Standard,
+            sla_seconds: None,
         });
     }
 
@@ -7795,6 +7807,8 @@ fn test_create_shipments_batch_returns_shipment_limit_reached() {
             data_hash: BytesN::from_array(&env, &[i as u8; 32]),
             payment_milestones: soroban_sdk::Vec::new(&env),
             deadline,
+            priority: crate::types::ShipmentPriority::Standard,
+            sla_seconds: None,
         });
     }
 
@@ -10689,6 +10703,8 @@ fn test_create_shipments_batch_validates_milestone_symbols() {
         data_hash: data_hash1,
         payment_milestones: milestones1,
         deadline,
+        priority: crate::types::ShipmentPriority::Standard,
+        sla_seconds: None,
     });
 
     // Second shipment with valid milestones
@@ -10703,6 +10719,8 @@ fn test_create_shipments_batch_validates_milestone_symbols() {
         data_hash: data_hash2,
         payment_milestones: milestones2,
         deadline,
+        priority: crate::types::ShipmentPriority::Standard,
+        sla_seconds: None,
     });
 
     let ids = client.create_shipments_batch(&company, &inputs);

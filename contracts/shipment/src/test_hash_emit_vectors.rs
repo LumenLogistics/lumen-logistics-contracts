@@ -335,12 +335,12 @@ fn test_vector_different_counters_produce_different_keys() {
 
 #[test]
 fn test_vector_contract_helper_matches_events_helper() {
-    use crate::{LumenShipment, LumenShipmentClient};
+    use crate::{OrbitHaulShipment, OrbitHaulShipmentClient};
     use soroban_sdk::Symbol;
 
     let env = setup();
-    let addr = env.register(LumenShipment, ());
-    let client = LumenShipmentClient::new(&env, &addr);
+    let addr = env.register(OrbitHaulShipment, ());
+    let client = OrbitHaulShipmentClient::new(&env, &addr);
 
     let admin = Address::generate(&env);
     let token = env
@@ -382,7 +382,7 @@ fn test_vector_contract_helper_matches_events_helper() {
 
 #[test]
 fn test_vector_emitted_keys_match_recomputed() {
-    use crate::{LumenShipment, LumenShipmentClient};
+    use crate::{OrbitHaulShipment, OrbitHaulShipmentClient};
     use soroban_sdk::{
         testutils::{Address as _, Events},
         Address, BytesN, Symbol, TryFromVal, Vec,
@@ -397,8 +397,8 @@ fn test_vector_emitted_keys_match_recomputed() {
     let token = env
         .register_stellar_asset_contract_v2(admin.clone())
         .address();
-    let addr = env.register(LumenShipment, ());
-    let client = LumenShipmentClient::new(&env, &addr);
+    let addr = env.register(OrbitHaulShipment, ());
+    let client = OrbitHaulShipmentClient::new(&env, &addr);
     client.initialize(&admin, &token);
     client.add_company(&admin, &company);
     client.add_carrier(&admin, &carrier);

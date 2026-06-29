@@ -4,7 +4,7 @@ use crate::{test::setup_shipment_env, OrbitHaulError, ShipmentStatus};
 use soroban_sdk::{testutils::Address as _, Address, BytesN, Vec};
 
 fn create_shipment_for(
-    client: &crate::LumenShipmentClient<'static>,
+    client: &crate::OrbitHaulShipmentClient<'static>,
     env: &soroban_sdk::Env,
     sender: &Address,
     receiver: &Address,

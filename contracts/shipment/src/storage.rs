@@ -1,4 +1,4 @@
-use crate::{errors::LumenError, types::*};
+use crate::{errors::OrbitHaulError, types::*};
 use soroban_sdk::{Address, BytesN, Env};
 
 /// Check if the contract has been initialized (admin set).
@@ -1151,11 +1151,11 @@ pub fn get_total_escrow_volume(env: &Env) -> i128 {
 }
 
 /// Add an amount to the total escrow volume.
-pub fn add_total_escrow_volume(env: &Env, amount: i128) -> Result<(), LumenError> {
+pub fn add_total_escrow_volume(env: &Env, amount: i128) -> Result<(), OrbitHaulError> {
     let current = get_total_escrow_volume(env);
     let updated = current
         .checked_add(amount)
-        .ok_or(LumenError::ArithmeticError)?;
+        .ok_or(OrbitHaulError::ArithmeticError)?;
     env.storage()
         .instance()
         .set(&DataKey::TotalEscrowVolume, &updated);

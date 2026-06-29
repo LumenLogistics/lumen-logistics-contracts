@@ -2,10 +2,10 @@
 //!
 //! Validates that the checked arithmetic helpers (`checked_add_i128`,
 //! `checked_sub_i128`, `checked_mul_div_i128`) correctly return
-//! `LumenError::ArithmeticError` at the i128 boundaries and succeed
+//! `OrbitHaulError::ArithmeticError` at the i128 boundaries and succeed
 //! for representable values.
 
-use crate::errors::LumenError;
+use crate::errors::OrbitHaulError;
 use crate::{checked_add_i128, checked_mul_div_i128, checked_sub_i128};
 
 // ── checked_add_i128 ─────────────────────────────────────────────────────────
@@ -29,7 +29,7 @@ fn test_checked_add_max_plus_zero() {
 fn test_checked_add_max_plus_one_overflows() {
     assert_eq!(
         checked_add_i128(i128::MAX, 1),
-        Err(LumenError::ArithmeticError),
+        Err(OrbitHaulError::ArithmeticError),
         "i128::MAX + 1 must overflow"
     );
 }
@@ -38,7 +38,7 @@ fn test_checked_add_max_plus_one_overflows() {
 fn test_checked_add_max_plus_max_overflows() {
     assert_eq!(
         checked_add_i128(i128::MAX, i128::MAX),
-        Err(LumenError::ArithmeticError),
+        Err(OrbitHaulError::ArithmeticError),
         "i128::MAX + i128::MAX must overflow"
     );
 }
@@ -47,7 +47,7 @@ fn test_checked_add_max_plus_max_overflows() {
 fn test_checked_add_min_plus_negative_one_overflows() {
     assert_eq!(
         checked_add_i128(i128::MIN, -1),
-        Err(LumenError::ArithmeticError),
+        Err(OrbitHaulError::ArithmeticError),
         "i128::MIN + (-1) must underflow"
     );
 }
@@ -83,7 +83,7 @@ fn test_checked_sub_positive_values() {
 fn test_checked_sub_min_minus_one_overflows() {
     assert_eq!(
         checked_sub_i128(i128::MIN, 1),
-        Err(LumenError::ArithmeticError),
+        Err(OrbitHaulError::ArithmeticError),
         "i128::MIN - 1 must underflow"
     );
 }
@@ -92,7 +92,7 @@ fn test_checked_sub_min_minus_one_overflows() {
 fn test_checked_sub_max_minus_negative_one_overflows() {
     assert_eq!(
         checked_sub_i128(i128::MAX, -1),
-        Err(LumenError::ArithmeticError),
+        Err(OrbitHaulError::ArithmeticError),
         "i128::MAX - (-1) must overflow"
     );
 }
@@ -129,7 +129,7 @@ fn test_checked_mul_div_basic() {
 fn test_checked_mul_div_divide_by_zero() {
     assert_eq!(
         checked_mul_div_i128(100, 50, 0),
-        Err(LumenError::ArithmeticError),
+        Err(OrbitHaulError::ArithmeticError),
         "Division by zero must return ArithmeticError"
     );
 }
@@ -143,7 +143,7 @@ fn test_checked_mul_div_max_times_one_over_one() {
 fn test_checked_mul_div_max_times_two_overflows() {
     assert_eq!(
         checked_mul_div_i128(i128::MAX, 2, 1),
-        Err(LumenError::ArithmeticError),
+        Err(OrbitHaulError::ArithmeticError),
         "i128::MAX * 2 must overflow before division"
     );
 }
@@ -152,7 +152,7 @@ fn test_checked_mul_div_max_times_two_overflows() {
 fn test_checked_mul_div_max_times_max_overflows() {
     assert_eq!(
         checked_mul_div_i128(i128::MAX, i128::MAX, 1),
-        Err(LumenError::ArithmeticError),
+        Err(OrbitHaulError::ArithmeticError),
         "i128::MAX * i128::MAX must overflow"
     );
 }
@@ -162,7 +162,7 @@ fn test_checked_mul_div_min_times_negative_one_overflows() {
     // i128::MIN * (-1) overflows because |i128::MIN| > i128::MAX
     assert_eq!(
         checked_mul_div_i128(i128::MIN, -1, 1),
-        Err(LumenError::ArithmeticError),
+        Err(OrbitHaulError::ArithmeticError),
         "i128::MIN * (-1) must overflow"
     );
 }
@@ -211,7 +211,7 @@ fn test_checked_mul_div_truncates_remainder() {
 // when additions would overflow the i128 boundary.
 
 mod total_escrow_volume_overflow {
-    use crate::errors::LumenError;
+    use crate::errors::OrbitHaulError;
     use crate::{storage, LumenShipment, LumenShipmentClient};
     use soroban_sdk::{contract, contractimpl, testutils::Address as _, Address, Env};
 
@@ -253,7 +253,7 @@ mod total_escrow_volume_overflow {
 
         assert_eq!(
             result,
-            Err(LumenError::ArithmeticError),
+            Err(OrbitHaulError::ArithmeticError),
             "adding 1 to i128::MAX must overflow and return ArithmeticError"
         );
     }
@@ -275,7 +275,7 @@ mod total_escrow_volume_overflow {
 
         assert_eq!(
             result,
-            Err(LumenError::ArithmeticError),
+            Err(OrbitHaulError::ArithmeticError),
             "i128::MAX + i128::MAX must return ArithmeticError"
         );
     }
@@ -307,7 +307,7 @@ mod total_escrow_volume_overflow {
             env.as_contract(&cid, || storage::add_total_escrow_volume(&env, 1));
         assert_eq!(
             overflow,
-            Err(LumenError::ArithmeticError),
+            Err(OrbitHaulError::ArithmeticError),
             "adding 1 past i128::MAX must return ArithmeticError"
         );
     }

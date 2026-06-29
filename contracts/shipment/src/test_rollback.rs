@@ -1,5 +1,5 @@
 use crate::{
-    test_utils, types::ShipmentInput, LumenError, LumenShipment, LumenShipmentClient,
+    test_utils, types::ShipmentInput, OrbitHaulError, LumenShipment, LumenShipmentClient,
     ShipmentStatus,
 };
 use soroban_sdk::{
@@ -157,7 +157,7 @@ fn test_record_milestones_batch_rollback() {
     // Let's check the code again.
     /*
     2433:         if milestones.len() > config.batch_operation_limit {
-    2434:             return Err(LumenError::BatchTooLarge);
+    2434:             return Err(OrbitHaulError::BatchTooLarge);
     2435:         }
     */
     // If I exceed the limit, it fails. But that's BEFORE any processing.
@@ -314,7 +314,7 @@ fn test_token_failure_maps_to_token_transfer_failed_error() {
         .unwrap();
     assert_eq!(
         err,
-        LumenError::TokenTransferFailed,
+        OrbitHaulError::TokenTransferFailed,
         "failed token transfer must map to TokenTransferFailed"
     );
 }

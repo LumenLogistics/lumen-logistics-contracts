@@ -7,7 +7,7 @@
 
 #![cfg(test)]
 
-use crate::{LumenError, LumenShipment, LumenShipmentClient, ShipmentStatus};
+use crate::{OrbitHaulError, LumenShipment, LumenShipmentClient, ShipmentStatus};
 use soroban_sdk::testutils::Address as _;
 use soroban_sdk::{contract, contractimpl, symbol_short, Address, BytesN, Env, Symbol, Vec};
 
@@ -125,7 +125,7 @@ fn test_release_out_of_order_second_before_first_fails() {
     let result = client.try_release_milestone_payment(&carrier, &id, &symbol_short!("beta"));
     assert_eq!(
         result,
-        Err(Ok(LumenError::InvalidStatus)),
+        Err(Ok(OrbitHaulError::InvalidStatus)),
         "releasing beta before alpha must be rejected"
     );
 }
@@ -139,7 +139,7 @@ fn test_release_out_of_order_third_first_fails() {
     let result = client.try_release_milestone_payment(&carrier, &id, &symbol_short!("gamma"));
     assert_eq!(
         result,
-        Err(Ok(LumenError::InvalidStatus)),
+        Err(Ok(OrbitHaulError::InvalidStatus)),
         "releasing gamma before alpha and beta must be rejected"
     );
 }
@@ -157,7 +157,7 @@ fn test_release_third_blocked_after_one_paid() {
     let result = client.try_release_milestone_payment(&carrier, &id, &symbol_short!("gamma"));
     assert_eq!(
         result,
-        Err(Ok(LumenError::InvalidStatus)),
+        Err(Ok(OrbitHaulError::InvalidStatus)),
         "gamma must still be blocked when only alpha is paid"
     );
 
@@ -180,7 +180,7 @@ fn test_release_same_milestone_twice_fails() {
     let result = client.try_release_milestone_payment(&carrier, &id, &symbol_short!("alpha"));
     assert_eq!(
         result,
-        Err(Ok(LumenError::MilestoneAlreadyPaid)),
+        Err(Ok(OrbitHaulError::MilestoneAlreadyPaid)),
         "releasing alpha a second time must return MilestoneAlreadyPaid"
     );
 }
@@ -301,7 +301,7 @@ fn test_two_milestone_order_enforced() {
 
     // second before first must fail
     let result = client.try_release_milestone_payment(&carrier, &id, &symbol_short!("second"));
-    assert_eq!(result, Err(Ok(LumenError::InvalidStatus)));
+    assert_eq!(result, Err(Ok(OrbitHaulError::InvalidStatus)));
 
     // first succeeds
     client.release_milestone_payment(&carrier, &id, &symbol_short!("first"));
@@ -320,7 +320,7 @@ fn test_unknown_milestone_rejected() {
 
     let bogus: Symbol = Symbol::new(&env, "bogus");
     let result = client.try_release_milestone_payment(&carrier, &id, &bogus);
-    assert_eq!(result, Err(Ok(LumenError::InvalidShipmentInput)));
+    assert_eq!(result, Err(Ok(OrbitHaulError::InvalidShipmentInput)));
 }
 
 #[test]
@@ -347,5 +347,5 @@ fn test_validation_rejects_zero_percentage_milestone() {
         &deadline,
     );
 
-    assert_eq!(result, Err(Ok(crate::errors::LumenError::InvalidConfig)));
+    assert_eq!(result, Err(Ok(crate::errors::OrbitHaulError::InvalidConfig)));
 }

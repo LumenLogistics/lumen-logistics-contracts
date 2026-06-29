@@ -1,12 +1,12 @@
-# Navin - Decentralized Delivery Tracking Platform
+# Lumen Logistics - Decentralized Delivery Tracking Platform
 
-[![CI](https://github.com/Navin-xmr/navin-contracts/actions/workflows/test.yml/badge.svg)](https://github.com/Navin-xmr/navin-contracts/actions)
+[![CI](https://github.com/LumenLogistics/lumen-logistics-contracts/actions/workflows/test.yml/badge.svg)](https://github.com/LumenLogistics/lumen-logistics-contracts/actions)
 
-**Navin** is a decentralized delivery tracking platform built on the Stellar blockchain. It empowers corporations and logistics companies to track foodstuff and other deliverable items in real-time with complete transparency and security.
+**Lumen Logistics** is a decentralized delivery tracking platform built on the Stellar blockchain. It empowers corporations and logistics companies to track foodstuff and other deliverable items in real-time with complete transparency and security.
 
 ## Overview
 
-In today's supply chain ecosystem, transparency and accountability are critical. Navin leverages Stellar's fast, low-cost blockchain infrastructure to provide:
+In today's supply chain ecosystem, transparency and accountability are critical. Lumen Logistics leverages Stellar's fast, low-cost blockchain infrastructure to provide:
 
 - **Real-time Tracking**: Monitor deliveries from origin to destination
 - **Transparent Operations**: All stakeholders can verify delivery status on-chain
@@ -24,7 +24,7 @@ In today's supply chain ecosystem, transparency and accountability are critical.
 
 ## Project Structure
 
-This repository contains Soroban smart contracts for the Navin platform:
+This repository contains Soroban smart contracts for the Lumen Logistics platform:
 
 ```text
 .
@@ -61,10 +61,10 @@ This repository contains Soroban smart contracts for the Navin platform:
 ### Installation
 
 ```bash
-# Fork  the repository
+# Fork the repository
 # Then clone your fork into your local environment
-git clone https://github.com/yourusername/navin-contracts.git
-cd navin-contracts
+git clone https://github.com/LumenLogistics/lumen-logistics-contracts.git
+cd lumen-logistics-contracts
 
 # Add wasm32 target
 rustup target add wasm32-unknown-unknown
@@ -104,7 +104,6 @@ cargo test
 ```bash
 # Format code
 make fmt
-
 ```
 
 ```
@@ -115,7 +114,6 @@ cargo fmt
 ```
 # Check formatting
 make fmt-check
-
 ```
 
 ```
@@ -184,7 +182,7 @@ Quick deployment:
 
 ### For Operators
 
-If you're responsible for maintaining a deployed Navin contract:
+If you're responsible for maintaining a deployed Lumen Logistics contract:
 
 1. **Start here**: [TTL Quick Reference](contracts/shipment/docs/TTL_QUICK_REFERENCE.md) for common operations
 2. **Deep dive**: [TTL Maintenance Playbook](contracts/shipment/docs/TTL_MAINTENANCE_PLAYBOOK.md) for complete procedures
@@ -193,7 +191,7 @@ If you're responsible for maintaining a deployed Navin contract:
 
 ## Architecture
 
-Navin's smart contracts handle:
+Lumen Logistics' smart contracts handle:
 
 - **Asset Management**: Secure storage and transfer of delivery tokens
 - **Access Control**: Role-based permissions for different stakeholders
@@ -219,7 +217,7 @@ We welcome contributions! Please see our [CONTRIBUTING.md](CONTRIBUTING.md) for 
 
 ## Security
 
-Security is paramount for Navin. If you discover a security vulnerability, please email <navinxmr@gmail.com> instead of using the issue tracker.
+Security is paramount for Lumen Logistics. If you discover a security vulnerability, please email <security@lumenlogistics.io> instead of using the issue tracker.
 
 ## Resources
 
@@ -229,8 +227,8 @@ Security is paramount for Navin. If you discover a security vulnerability, pleas
 
 ## Community
 
-- [Twitter](https://twitter.com/navinxmr)
-- [Telegram Group Chat](https://t.me/+3svwFsQME6k1YjI0)
+- [Twitter](https://twitter.com/lumenlogistics)
+- [Telegram Group Chat](https://t.me/lumenlogistics)
 
 ---
 

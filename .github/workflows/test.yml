@@ -1,4 +1,4 @@
-name: Navin Smart Contracts CI
+name: Lumen Logistics Smart Contracts CI
 
 on:
   push:

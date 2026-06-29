@@ -1,8 +1,8 @@
-# Lumen Logistics - Decentralized Delivery Tracking Platform
+#OrbitHaul - Decentralized Delivery Tracking Platform
 
 [![CI](https://github.com/OrbitHaul/Orbit-Haul-contracts/actions/workflows/test.yml/badge.svg)](https://github.com/OrbitHaul/Orbit-Haul-contracts/actions)
 
-**Lumen Logistics** is a decentralized delivery tracking platform built on the Stellar blockchain. It empowers corporations and logistics companies to track foodstuff and other deliverable items in real-time with complete transparency and security.
+**OrbitHaul** is a decentralized delivery tracking platform built on the Stellar blockchain. It empowers corporations and logistics companies to track foodstuff and other deliverable items in real-time with complete transparency and security.
 
 ## Overview
 

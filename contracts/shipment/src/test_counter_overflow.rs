@@ -2,7 +2,7 @@
 
 extern crate std;
 
-use crate::{types::DataKey, LumenError, LumenShipment, LumenShipmentClient};
+use crate::{types::DataKey, OrbitHaulError, LumenShipment, LumenShipmentClient};
 use soroban_sdk::{testutils::Address as _, Address, BytesN, Env, Vec};
 
 #[soroban_sdk::contract]
@@ -150,7 +150,7 @@ fn test_shipment_counter_overflow_rejected_at_max() {
     match result {
         Ok(Err(e)) => {
             let expected_error =
-                soroban_sdk::Error::from_contract_error(LumenError::CounterOverflow as u32);
+                soroban_sdk::Error::from_contract_error(OrbitHaulError::CounterOverflow as u32);
             let err_str = std::format!("{:?}", e);
             let expected_str = std::format!("{:?}", expected_error);
             assert!(

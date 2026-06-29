@@ -7,7 +7,7 @@
 
 extern crate std;
 
-use crate::{LumenShipment, LumenShipmentClient, ShipmentStatus};
+use crate::{OrbitHaulShipment, OrbitHaulShipmentClient, ShipmentStatus};
 use soroban_sdk::{
     contract, contractimpl,
     testutils::{Address as _, Ledger as _},
@@ -35,11 +35,11 @@ impl MockToken {
 // Test Setup Helpers
 // ─────────────────────────────────────────────────────────────────────────────
 
-fn setup_env() -> (Env, LumenShipmentClient<'static>, Address, Address) {
+fn setup_env() -> (Env, OrbitHaulShipmentClient<'static>, Address, Address) {
     let (env, admin) = crate::test_utils::setup_env();
     let token_contract = env.register(MockToken {}, ());
-    let contract_id = env.register(LumenShipment, ());
-    let client = LumenShipmentClient::new(&env, &contract_id);
+    let contract_id = env.register(OrbitHaulShipment, ());
+    let client = OrbitHaulShipmentClient::new(&env, &contract_id);
     client.initialize(&admin, &token_contract);
     (env, client, admin, token_contract)
 }
@@ -92,8 +92,8 @@ fn test_add_company_not_initialized() {
     let admin = Address::generate(&env);
     let company = Address::generate(&env);
     let _token = env.register(MockToken {}, ());
-    let contract_id = env.register(LumenShipment, ());
-    let client = LumenShipmentClient::new(&env, &contract_id);
+    let contract_id = env.register(OrbitHaulShipment, ());
+    let client = OrbitHaulShipmentClient::new(&env, &contract_id);
 
     env.mock_all_auths();
     let result = client.try_add_company(&admin, &company);

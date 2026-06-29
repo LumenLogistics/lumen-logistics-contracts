@@ -9,7 +9,7 @@
 
 extern crate std;
 
-use crate::{BreachType, LumenShipment, LumenShipmentClient, Severity, ShipmentStatus};
+use crate::{BreachType, OrbitHaulShipment, OrbitHaulShipmentClient, Severity, ShipmentStatus};
 use soroban_sdk::{contract, contractimpl, testutils::Address as _, Address, BytesN, Env};
 
 // ── Minimal mock token ────────────────────────────────────────────────────────
@@ -29,15 +29,15 @@ impl MockToken {
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-fn setup() -> (Env, LumenShipmentClient<'static>, Address, Address) {
+fn setup() -> (Env, OrbitHaulShipmentClient<'static>, Address, Address) {
     let (env, admin) = super::test_utils::setup_env();
     let token = env.register(MockToken {}, ());
-    let client = LumenShipmentClient::new(&env, &env.register(LumenShipment, ()));
+    let client = OrbitHaulShipmentClient::new(&env, &env.register(OrbitHaulShipment, ()));
     (env, client, admin, token)
 }
 
 /// Enable `auto_dispute_breach` by calling `update_config`.
-fn enable_auto_dispute(client: &LumenShipmentClient, admin: &Address) {
+fn enable_auto_dispute(client: &OrbitHaulShipmentClient, admin: &Address) {
     let mut cfg = client.get_contract_config();
     cfg.auto_dispute_breach = true;
     client.update_config(admin, &cfg);
@@ -46,7 +46,7 @@ fn enable_auto_dispute(client: &LumenShipmentClient, admin: &Address) {
 /// Create a shipment and return its ID. Carrier is registered as a carrier role.
 fn create_test_shipment(
     env: &Env,
-    client: &LumenShipmentClient,
+    client: &OrbitHaulShipmentClient,
     admin: &Address,
     token: &Address,
 ) -> (u64, Address, Address, Address) {

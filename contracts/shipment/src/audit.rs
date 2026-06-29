@@ -17,7 +17,7 @@
 //! - Event emission for all logged operations
 //! - Before/after state tracking
 
-use crate::{errors::LumenError, types::*};
+use crate::{errors::OrbitHaulError, types::*};
 use soroban_sdk::{contracttype, Address, Env};
 
 /// Audit event types for role and permission operations
@@ -74,14 +74,14 @@ pub struct AuditLogEntry {
 ///
 /// # Returns
 /// * `Ok(entry_id)` on success
-/// * `Err(LumenError)` on failure
+/// * `Err(OrbitHaulError)` on failure
 #[allow(dead_code)]
 pub fn log_role_assigned(
     env: &Env,
     admin: &Address,
     target: &Address,
     _role: &Role,
-) -> Result<u64, LumenError> {
+) -> Result<u64, OrbitHaulError> {
     let entry_id = get_next_audit_entry_id(env)?;
     let timestamp = env.ledger().timestamp();
 
@@ -109,14 +109,14 @@ pub fn log_role_assigned(
 ///
 /// # Returns
 /// * `Ok(entry_id)` on success
-/// * `Err(LumenError)` on failure
+/// * `Err(OrbitHaulError)` on failure
 #[allow(dead_code)]
 pub fn log_role_revoked(
     env: &Env,
     admin: &Address,
     target: &Address,
     _role: &Role,
-) -> Result<u64, LumenError> {
+) -> Result<u64, OrbitHaulError> {
     let entry_id = get_next_audit_entry_id(env)?;
     let timestamp = env.ledger().timestamp();
 
@@ -144,14 +144,14 @@ pub fn log_role_revoked(
 ///
 /// # Returns
 /// * `Ok(entry_id)` on success
-/// * `Err(LumenError)` on failure
+/// * `Err(OrbitHaulError)` on failure
 #[allow(dead_code)]
 pub fn log_role_suspended(
     env: &Env,
     admin: &Address,
     target: &Address,
     _role: &Role,
-) -> Result<u64, LumenError> {
+) -> Result<u64, OrbitHaulError> {
     let entry_id = get_next_audit_entry_id(env)?;
     let timestamp = env.ledger().timestamp();
 
@@ -179,14 +179,14 @@ pub fn log_role_suspended(
 ///
 /// # Returns
 /// * `Ok(entry_id)` on success
-/// * `Err(LumenError)` on failure
+/// * `Err(OrbitHaulError)` on failure
 #[allow(dead_code)]
 pub fn log_role_reactivated(
     env: &Env,
     admin: &Address,
     target: &Address,
     _role: &Role,
-) -> Result<u64, LumenError> {
+) -> Result<u64, OrbitHaulError> {
     let entry_id = get_next_audit_entry_id(env)?;
     let timestamp = env.ledger().timestamp();
 
@@ -213,13 +213,13 @@ pub fn log_role_reactivated(
 ///
 /// # Returns
 /// * `Ok(entry_id)` on success
-/// * `Err(LumenError)` on failure
+/// * `Err(OrbitHaulError)` on failure
 #[allow(dead_code)]
 pub fn log_admin_transferred(
     env: &Env,
     old_admin: &Address,
     new_admin: &Address,
-) -> Result<u64, LumenError> {
+) -> Result<u64, OrbitHaulError> {
     let entry_id = get_next_audit_entry_id(env)?;
     let timestamp = env.ledger().timestamp();
 
@@ -247,14 +247,14 @@ pub fn log_admin_transferred(
 ///
 /// # Returns
 /// * `Ok(entry_id)` on success
-/// * `Err(LumenError)` on failure
+/// * `Err(OrbitHaulError)` on failure
 #[allow(dead_code)]
 pub fn log_carrier_whitelisted(
     env: &Env,
     admin: &Address,
     _company: &Address,
     carrier: &Address,
-) -> Result<u64, LumenError> {
+) -> Result<u64, OrbitHaulError> {
     let entry_id = get_next_audit_entry_id(env)?;
     let timestamp = env.ledger().timestamp();
 
@@ -361,17 +361,17 @@ pub fn query_audit_history_by_actor(env: &Env, actor: &Address) -> soroban_sdk::
 ///
 /// # Returns
 /// * `Ok(count)` - Number of entries removed
-/// * `Err(LumenError)` - If not authorized
+/// * `Err(OrbitHaulError)` - If not authorized
 #[allow(dead_code)]
 pub fn cleanup_audit_logs(
     env: &Env,
     admin: &Address,
     before_timestamp: u64,
-) -> Result<u32, LumenError> {
+) -> Result<u32, OrbitHaulError> {
     // Verify admin authorization
     admin.require_auth();
     if !crate::storage::is_admin(env, admin) {
-        return Err(LumenError::Unauthorized);
+        return Err(OrbitHaulError::Unauthorized);
     }
 
     let mut removed_count = 0u32;
@@ -393,7 +393,7 @@ pub fn cleanup_audit_logs(
 // Internal helpers
 // ─────────────────────────────────────────────────────────────────────────────
 
-fn get_next_audit_entry_id(env: &Env) -> Result<u64, LumenError> {
+fn get_next_audit_entry_id(env: &Env) -> Result<u64, OrbitHaulError> {
     let count = get_audit_entry_count(env);
     Ok(count as u64)
 }

@@ -1,4 +1,4 @@
-use crate::{test_utils, LumenShipment, LumenShipmentClient};
+use crate::{test_utils, OrbitHaulShipment, OrbitHaulShipmentClient};
 use soroban_sdk::{
     contract, contractimpl, testutils::Address as _, Address, BytesN, Env, Symbol, Vec,
 };
@@ -17,10 +17,10 @@ impl MockToken {
     }
 }
 
-fn setup_test(env: &Env) -> (LumenShipmentClient<'static>, Address, Address) {
+fn setup_test(env: &Env) -> (OrbitHaulShipmentClient<'static>, Address, Address) {
     let admin = Address::generate(env);
     let token_contract = env.register(MockToken {}, ());
-    let client = LumenShipmentClient::new(env, &env.register(LumenShipment, ()));
+    let client = OrbitHaulShipmentClient::new(env, &env.register(OrbitHaulShipment, ()));
     client.initialize(&admin, &token_contract);
     (client, admin, token_contract)
 }

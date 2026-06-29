@@ -8,7 +8,7 @@ use crate::{
     },
     test_utils,
     types::{ShipmentInput, ShipmentStatus},
-    NavinShipment, NavinShipmentClient,
+    LumenShipment, LumenShipmentClient,
 };
 use soroban_sdk::{contract, contractimpl, testutils::Address as _, Address, BytesN, Env, Vec};
 
@@ -29,10 +29,10 @@ impl MockTokenConsistency {
 
 // ── Test helpers ────────────────────────────────────────────────────────────
 
-fn setup() -> (Env, NavinShipmentClient<'static>, Address, Address) {
+fn setup() -> (Env, LumenShipmentClient<'static>, Address, Address) {
     let (env, admin) = test_utils::setup_env();
     let token = env.register(MockTokenConsistency {}, ());
-    let client = NavinShipmentClient::new(&env, &env.register(NavinShipment, ()));
+    let client = LumenShipmentClient::new(&env, &env.register(LumenShipment, ()));
     client.initialize(&admin, &token);
     (env, client, admin, token)
 }
@@ -43,7 +43,7 @@ fn dummy_hash(env: &Env, seed: u8) -> BytesN<32> {
 
 fn create_one(
     env: &Env,
-    client: &NavinShipmentClient,
+    client: &LumenShipmentClient,
     company: &Address,
     carrier: &Address,
     seed: u8,

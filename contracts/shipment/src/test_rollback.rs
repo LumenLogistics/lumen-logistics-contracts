@@ -1,5 +1,5 @@
 use crate::{
-    test_utils, types::ShipmentInput, NavinError, NavinShipment, NavinShipmentClient,
+    test_utils, types::ShipmentInput, LumenError, LumenShipment, LumenShipmentClient,
     ShipmentStatus,
 };
 use soroban_sdk::{
@@ -50,10 +50,10 @@ mod mock_fail_rollback {
     }
 }
 
-fn setup_test() -> (Env, NavinShipmentClient<'static>, Address, Address) {
+fn setup_test() -> (Env, LumenShipmentClient<'static>, Address, Address) {
     let (env, admin) = test_utils::setup_env();
     let token_contract = env.register(MockToken {}, ());
-    let client = NavinShipmentClient::new(&env, &env.register(NavinShipment, ()));
+    let client = LumenShipmentClient::new(&env, &env.register(LumenShipment, ()));
     client.initialize(&admin, &token_contract);
     (env, client, admin, token_contract)
 }
@@ -157,7 +157,7 @@ fn test_record_milestones_batch_rollback() {
     // Let's check the code again.
     /*
     2433:         if milestones.len() > config.batch_operation_limit {
-    2434:             return Err(NavinError::BatchTooLarge);
+    2434:             return Err(LumenError::BatchTooLarge);
     2435:         }
     */
     // If I exceed the limit, it fails. But that's BEFORE any processing.
@@ -206,10 +206,10 @@ fn test_record_milestones_batch_rollback() {
 
 // ── Token transfer failure recovery (issue #447) ─────────────────────────────
 
-fn setup_failing_token() -> (Env, NavinShipmentClient<'static>, Address, Address) {
+fn setup_failing_token() -> (Env, LumenShipmentClient<'static>, Address, Address) {
     let (env, admin) = test_utils::setup_env();
     let token_contract = env.register(mock_fail_rollback::FailingToken {}, ());
-    let client = NavinShipmentClient::new(&env, &env.register(NavinShipment, ()));
+    let client = LumenShipmentClient::new(&env, &env.register(LumenShipment, ()));
     client.initialize(&admin, &token_contract);
     (env, client, admin, token_contract)
 }
@@ -314,7 +314,7 @@ fn test_token_failure_maps_to_token_transfer_failed_error() {
         .unwrap();
     assert_eq!(
         err,
-        NavinError::TokenTransferFailed,
+        LumenError::TokenTransferFailed,
         "failed token transfer must map to TokenTransferFailed"
     );
 }

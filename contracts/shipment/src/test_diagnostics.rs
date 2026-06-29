@@ -2,7 +2,7 @@ use crate::{
     config,
     test_utils::{advance_ledger_time, setup_env},
     types::ShipmentStatus,
-    NavinShipment, NavinShipmentClient,
+    LumenShipment, LumenShipmentClient,
 };
 use soroban_sdk::{contract, contractimpl, testutils::Address as _, Address, BytesN, Env, Vec};
 
@@ -26,11 +26,11 @@ impl MockToken {
     }
 }
 
-fn prepare_test() -> (Env, NavinShipmentClient<'static>, Address, Address) {
+fn prepare_test() -> (Env, LumenShipmentClient<'static>, Address, Address) {
     let (env, admin) = setup_env();
     let token = env.register(MockToken {}, ());
-    let cid = env.register(NavinShipment, ());
-    let client = NavinShipmentClient::new(&env, &cid);
+    let cid = env.register(LumenShipment, ());
+    let client = LumenShipmentClient::new(&env, &cid);
     client.initialize(&admin, &token);
     (env, client, admin, token)
 }
@@ -868,13 +868,13 @@ fn test_get_non_terminal_count_alignment() {
 /// ShipmentNotFound without panicking or crashing the node.
 #[test]
 fn test_get_shipment_creator_returns_not_found_for_nonexistent_id() {
-    use crate::NavinError;
+    use crate::LumenError;
     let (_, client, _, _) = prepare_test();
 
     let result = client.try_get_shipment_creator(&9999u64);
     assert_eq!(
         result,
-        Err(Ok(NavinError::ShipmentNotFound)),
+        Err(Ok(LumenError::ShipmentNotFound)),
         "get_shipment_creator must return ShipmentNotFound for an ID that was never created"
     );
 }
@@ -883,13 +883,13 @@ fn test_get_shipment_creator_returns_not_found_for_nonexistent_id() {
 /// must return ShipmentNotFound gracefully.
 #[test]
 fn test_get_shipment_creator_returns_not_found_for_zero_id() {
-    use crate::NavinError;
+    use crate::LumenError;
     let (_, client, _, _) = prepare_test();
 
     let result = client.try_get_shipment_creator(&0u64);
     assert_eq!(
         result,
-        Err(Ok(NavinError::ShipmentNotFound)),
+        Err(Ok(LumenError::ShipmentNotFound)),
         "get_shipment_creator must return ShipmentNotFound for ID 0"
     );
 }
@@ -898,13 +898,13 @@ fn test_get_shipment_creator_returns_not_found_for_zero_id() {
 /// ShipmentNotFound — no storage panic or key error.
 #[test]
 fn test_get_shipment_creator_returns_not_found_for_large_invalid_id() {
-    use crate::NavinError;
+    use crate::LumenError;
     let (_, client, _, _) = prepare_test();
 
     let result = client.try_get_shipment_creator(&u64::MAX);
     assert_eq!(
         result,
-        Err(Ok(NavinError::ShipmentNotFound)),
+        Err(Ok(LumenError::ShipmentNotFound)),
         "get_shipment_creator must return ShipmentNotFound for u64::MAX ID"
     );
 }

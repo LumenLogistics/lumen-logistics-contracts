@@ -1,11 +1,11 @@
 extern crate std;
 
-use crate::{test::setup_shipment_env, types::DataKey, NavinError};
+use crate::{test::setup_shipment_env, types::DataKey, LumenError};
 use soroban_sdk::{testutils::Address as _, Address, BytesN, Vec};
 
 fn setup_single_shipment() -> (
     soroban_sdk::Env,
-    crate::NavinShipmentClient<'static>,
+    crate::LumenShipmentClient<'static>,
     Address,
     Address,
     Address,
@@ -45,7 +45,7 @@ fn test_deposit_escrow_rejected_when_reentrancy_lock_is_preheld() {
     });
 
     let result = client.try_deposit_escrow(&company, &shipment_id, &1000);
-    assert_eq!(result, Err(Ok(NavinError::ReentrancyDetected)));
+    assert_eq!(result, Err(Ok(LumenError::ReentrancyDetected)));
 }
 
 #[test]
@@ -63,7 +63,7 @@ fn test_release_escrow_rejected_when_reentrancy_lock_is_preheld() {
     });
 
     let result = client.try_release_escrow(&receiver, &shipment_id);
-    assert_eq!(result, Err(Ok(NavinError::ReentrancyDetected)));
+    assert_eq!(result, Err(Ok(LumenError::ReentrancyDetected)));
 }
 
 #[test]
@@ -78,7 +78,7 @@ fn test_refund_escrow_rejected_when_reentrancy_lock_is_preheld() {
     });
 
     let result = client.try_refund_escrow(&company, &shipment_id);
-    assert_eq!(result, Err(Ok(NavinError::ReentrancyDetected)));
+    assert_eq!(result, Err(Ok(LumenError::ReentrancyDetected)));
 }
 
 #[test]
@@ -157,7 +157,7 @@ fn test_nested_fixture_bypass_attempt_rejected() {
     let result = client.try_release_escrow(&receiver, &shipment_id);
     assert_eq!(
         result,
-        Err(Ok(NavinError::ReentrancyDetected)),
+        Err(Ok(LumenError::ReentrancyDetected)),
         "bypass attempt must be rejected"
     );
 

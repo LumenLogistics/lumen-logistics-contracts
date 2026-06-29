@@ -1,4 +1,4 @@
-use crate::{errors::NavinError, types::*};
+use crate::{errors::LumenError, types::*};
 use soroban_sdk::{Address, BytesN, Env};
 
 /// Check if the contract has been initialized (admin set).
@@ -1151,11 +1151,11 @@ pub fn get_total_escrow_volume(env: &Env) -> i128 {
 }
 
 /// Add an amount to the total escrow volume.
-pub fn add_total_escrow_volume(env: &Env, amount: i128) -> Result<(), NavinError> {
+pub fn add_total_escrow_volume(env: &Env, amount: i128) -> Result<(), LumenError> {
     let current = get_total_escrow_volume(env);
     let updated = current
         .checked_add(amount)
-        .ok_or(NavinError::ArithmeticError)?;
+        .ok_or(LumenError::ArithmeticError)?;
     env.storage()
         .instance()
         .set(&DataKey::TotalEscrowVolume, &updated);
@@ -1968,7 +1968,7 @@ mod tests {
 
     fn with_contract_env() -> (Env, Address) {
         let (env, _) = test_utils::setup_env();
-        let contract_id = env.register(crate::NavinShipment, ());
+        let contract_id = env.register(crate::LumenShipment, ());
         (env, contract_id)
     }
 
@@ -2072,3 +2072,37 @@ mod tests {
 }
 
 // ============= Settlement State Storage Functions =============
+
+// ============= IoT Reading Storage Functions =============
+
+/// Get the IoT reading count for a shipment.
+pub fn get_iot_reading_count(env: &Env, shipment_id: u64) -> u32 {
+    env.storage()
+        .persistent()
+        .get(&DataKey::IoTReadingCount(shipment_id))
+        .unwrap_or(0)
+}
+
+/// Increment and return the new IoT reading count (returns the new index).
+pub fn increment_iot_reading_count(env: &Env, shipment_id: u64) -> u32 {
+    let current = get_iot_reading_count(env, shipment_id);
+    let next = current.saturating_add(1);
+    env.storage()
+        .persistent()
+        .set(&DataKey::IoTReadingCount(shipment_id), &next);
+    current // return index of newly inserted reading
+}
+
+/// Store an IoT data point at a specific index for a shipment.
+pub fn set_iot_reading(env: &Env, shipment_id: u64, index: u32, reading: &crate::types::IoTDataPoint) {
+    env.storage()
+        .persistent()
+        .set(&DataKey::IoTReading(shipment_id, index), reading);
+}
+
+/// Retrieve an IoT data point by shipment and index.
+pub fn get_iot_reading(env: &Env, shipment_id: u64, index: u32) -> Option<crate::types::IoTDataPoint> {
+    env.storage()
+        .persistent()
+        .get(&DataKey::IoTReading(shipment_id, index))
+}

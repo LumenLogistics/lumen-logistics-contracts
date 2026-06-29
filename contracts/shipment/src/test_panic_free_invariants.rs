@@ -7,7 +7,7 @@
 
 extern crate std;
 
-use crate::{NavinShipment, NavinShipmentClient, ShipmentStatus};
+use crate::{LumenShipment, LumenShipmentClient, ShipmentStatus};
 use soroban_sdk::{
     contract, contractimpl,
     testutils::{Address as _, Ledger as _},
@@ -35,11 +35,11 @@ impl MockToken {
 // Test Setup Helpers
 // ─────────────────────────────────────────────────────────────────────────────
 
-fn setup_env() -> (Env, NavinShipmentClient<'static>, Address, Address) {
+fn setup_env() -> (Env, LumenShipmentClient<'static>, Address, Address) {
     let (env, admin) = crate::test_utils::setup_env();
     let token_contract = env.register(MockToken {}, ());
-    let contract_id = env.register(NavinShipment, ());
-    let client = NavinShipmentClient::new(&env, &contract_id);
+    let contract_id = env.register(LumenShipment, ());
+    let client = LumenShipmentClient::new(&env, &contract_id);
     client.initialize(&admin, &token_contract);
     (env, client, admin, token_contract)
 }
@@ -92,8 +92,8 @@ fn test_add_company_not_initialized() {
     let admin = Address::generate(&env);
     let company = Address::generate(&env);
     let _token = env.register(MockToken {}, ());
-    let contract_id = env.register(NavinShipment, ());
-    let client = NavinShipmentClient::new(&env, &contract_id);
+    let contract_id = env.register(LumenShipment, ());
+    let client = LumenShipmentClient::new(&env, &contract_id);
 
     env.mock_all_auths();
     let result = client.try_add_company(&admin, &company);
@@ -641,7 +641,7 @@ fn test_get_dispute_evidence_hash_out_of_bounds() {
     let result_nonexistent = client.try_get_dispute_evidence_hash(&999u64, &0);
     assert_eq!(
         result_nonexistent,
-        Err(Ok(crate::NavinError::ShipmentNotFound)),
+        Err(Ok(crate::LumenError::ShipmentNotFound)),
         "querying dispute evidence on nonexistent shipment must return ShipmentNotFound"
     );
 
@@ -649,7 +649,7 @@ fn test_get_dispute_evidence_hash_out_of_bounds() {
     let result_empty = client.try_get_dispute_evidence_hash(&shipment_id, &0);
     assert_eq!(
         result_empty,
-        Err(Ok(crate::NavinError::EvidenceNotFound)),
+        Err(Ok(crate::LumenError::EvidenceNotFound)),
         "querying index 0 on empty evidence list must return EvidenceNotFound"
     );
 
@@ -677,7 +677,7 @@ fn test_get_dispute_evidence_hash_out_of_bounds() {
     let result_equal = client.try_get_dispute_evidence_hash(&shipment_id, &1);
     assert_eq!(
         result_equal,
-        Err(Ok(crate::NavinError::EvidenceNotFound)),
+        Err(Ok(crate::LumenError::EvidenceNotFound)),
         "querying index equal to evidence count must return EvidenceNotFound"
     );
 
@@ -685,7 +685,7 @@ fn test_get_dispute_evidence_hash_out_of_bounds() {
     let result_greater = client.try_get_dispute_evidence_hash(&shipment_id, &2);
     assert_eq!(
         result_greater,
-        Err(Ok(crate::NavinError::EvidenceNotFound)),
+        Err(Ok(crate::LumenError::EvidenceNotFound)),
         "querying index greater than evidence count must return EvidenceNotFound"
     );
 }

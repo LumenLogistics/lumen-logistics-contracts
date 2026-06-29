@@ -1,4 +1,4 @@
-use crate::errors::NavinError;
+use crate::errors::LumenError;
 
 /// Broad category a contract error belongs to.
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
@@ -30,10 +30,10 @@ pub enum RetryGuidance {
     RetryAfterStateChange,
 }
 
-/// Structured metadata for a single `NavinError` variant.
+/// Structured metadata for a single `LumenError` variant.
 #[derive(Copy, Clone, Debug)]
 pub struct ContractErrorInfo {
-    pub error: NavinError,
+    pub error: LumenError,
     /// Numeric discriminant as exposed on-chain.
     pub code: u32,
     pub category: ErrorCategory,
@@ -42,7 +42,7 @@ pub struct ContractErrorInfo {
     pub message: &'static str,
 }
 
-/// Returns the `ContractErrorInfo` for the given `NavinError`.
+/// Returns the `ContractErrorInfo` for the given `LumenError`.
 ///
 /// Consumers (backends, frontends, indexers) call this to translate a raw
 /// contract error code into a category and retry decision without hard-coding
@@ -51,396 +51,396 @@ pub struct ContractErrorInfo {
 /// # Example
 /// ```rust
 /// use shipment::error_map::{error_info, RetryGuidance};
-/// use shipment::errors::NavinError;
+/// use shipment::errors::LumenError;
 ///
-/// let info = error_info(NavinError::RateLimitExceeded);
+/// let info = error_info(LumenError::RateLimitExceeded);
 /// assert_eq!(info.retry, RetryGuidance::RetryAfterDelay);
 /// ```
-pub fn error_info(error: NavinError) -> ContractErrorInfo {
+pub fn error_info(error: LumenError) -> ContractErrorInfo {
     use ErrorCategory::*;
     use RetryGuidance::*;
 
     let (code, category, retry, message) = match error {
-        NavinError::AlreadyInitialized => (
+        LumenError::AlreadyInitialized => (
             1,
             Configuration,
             NoRetry,
             "Contract is already initialised; call init only once.",
         ),
-        NavinError::NotInitialized => (
+        LumenError::NotInitialized => (
             2,
             Configuration,
             NoRetry,
             "Contract has not been initialised; call init first.",
         ),
-        NavinError::Unauthorized => (
+        LumenError::Unauthorized => (
             3,
             Unauthorized,
             NoRetry,
             "Caller does not hold the required role or signature.",
         ),
-        NavinError::ShipmentNotFound => (4, NotFound, NoRetry, "Shipment ID does not exist."),
-        NavinError::InvalidStatus => (
+        LumenError::ShipmentNotFound => (4, NotFound, NoRetry, "Shipment ID does not exist."),
+        LumenError::InvalidStatus => (
             5,
             InvalidState,
             RetryAfterStateChange,
             "State transition is not allowed from the current shipment status.",
         ),
-        NavinError::InvalidHash => (
+        LumenError::InvalidHash => (
             6,
             InvalidInput,
             NoRetry,
             "Provided data hash does not match the stored value.",
         ),
-        NavinError::EscrowLocked => (
+        LumenError::EscrowLocked => (
             7,
             InvalidState,
             RetryAfterStateChange,
             "Escrow is locked; wait for the shipment to reach a terminal state.",
         ),
-        NavinError::InsufficientFunds => (
+        LumenError::InsufficientFunds => (
             8,
             InvalidInput,
             NoRetry,
             "Caller balance is too low to cover the escrow deposit.",
         ),
-        NavinError::ShipmentAlreadyCompleted => (
+        LumenError::ShipmentAlreadyCompleted => (
             9,
             InvalidState,
             NoRetry,
             "Shipment is already in a terminal state (Delivered or Disputed).",
         ),
-        NavinError::InvalidTimestamp => (
+        LumenError::InvalidTimestamp => (
             10,
             InvalidInput,
             NoRetry,
             "Timestamp is invalid (e.g. ETA is in the past).",
         ),
-        NavinError::CounterOverflow => (
+        LumenError::CounterOverflow => (
             11,
             Transient,
             NoRetry,
             "Internal counter overflowed; contact the contract operator.",
         ),
-        NavinError::InvalidAmount => (
+        LumenError::InvalidAmount => (
             14,
             InvalidInput,
             NoRetry,
             "Amount must be a positive non-zero value.",
         ),
-        NavinError::ReentrancyDetected => (
+        LumenError::ReentrancyDetected => (
             15,
             InvalidState,
             RetryAfterDelay,
             "Reentrancy lock is active; retry once the current escrow operation completes.",
         ),
-        NavinError::BatchTooLarge => (
+        LumenError::BatchTooLarge => (
             16,
             LimitExceeded,
             NoRetry,
             "Batch exceeds the maximum allowed item count; split into smaller batches.",
         ),
-        NavinError::InvalidShipmentInput => (
+        LumenError::InvalidShipmentInput => (
             17,
             InvalidInput,
             NoRetry,
             "Shipment parameters are invalid (e.g. receiver equals carrier).",
         ),
-        NavinError::MilestoneSumInvalid => (
+        LumenError::MilestoneSumInvalid => (
             18,
             InvalidInput,
             NoRetry,
             "Milestone percentages must sum to exactly 100.",
         ),
-        NavinError::MilestoneAlreadyPaid => (
+        LumenError::MilestoneAlreadyPaid => (
             19,
             InvalidState,
             NoRetry,
             "This milestone has already been paid.",
         ),
-        NavinError::MetadataLimitExceeded => (
+        LumenError::MetadataLimitExceeded => (
             20,
             LimitExceeded,
             NoRetry,
             "Maximum of 5 metadata entries per shipment reached.",
         ),
-        NavinError::RateLimitExceeded => (
+        LumenError::RateLimitExceeded => (
             21,
             LimitExceeded,
             RetryAfterDelay,
             "Minimum interval between status updates has not elapsed; retry later.",
         ),
-        NavinError::ProposalNotFound => (
+        LumenError::ProposalNotFound => (
             22,
             NotFound,
             NoRetry,
             "Multi-sig proposal ID does not exist.",
         ),
-        NavinError::ProposalAlreadyExecuted => (
+        LumenError::ProposalAlreadyExecuted => (
             23,
             InvalidState,
             NoRetry,
             "Proposal has already been executed.",
         ),
-        NavinError::ProposalExpired => (
+        LumenError::ProposalExpired => (
             24,
             InvalidState,
             NoRetry,
             "Proposal has expired; create a new proposal.",
         ),
-        NavinError::AlreadyApproved => (
+        LumenError::AlreadyApproved => (
             25,
             InvalidState,
             NoRetry,
             "This admin has already approved the proposal.",
         ),
-        NavinError::InsufficientApprovals => (
+        LumenError::InsufficientApprovals => (
             26,
             InvalidState,
             RetryAfterStateChange,
             "Not enough admin approvals; wait for additional signers.",
         ),
-        NavinError::NotAnAdmin => (
+        LumenError::NotAnAdmin => (
             27,
             Unauthorized,
             NoRetry,
             "Caller is not in the admin list.",
         ),
-        NavinError::InvalidMultiSigConfig => (
+        LumenError::InvalidMultiSigConfig => (
             28,
             InvalidInput,
             NoRetry,
             "Multi-sig config is invalid (e.g. threshold exceeds admin count).",
         ),
-        NavinError::NotExpired => (
+        LumenError::NotExpired => (
             29,
             InvalidState,
             RetryAfterStateChange,
             "Shipment deadline has not yet passed; wait for expiry.",
         ),
-        NavinError::ShipmentLimitReached => (
+        LumenError::ShipmentLimitReached => (
             30,
             LimitExceeded,
             RetryAfterStateChange,
             "Company has reached its active shipment cap; close existing shipments first.",
         ),
-        NavinError::InvalidConfig => (
+        LumenError::InvalidConfig => (
             31,
             InvalidInput,
             NoRetry,
             "Configuration parameters are invalid.",
         ),
-        NavinError::CannotSelfRevoke => (
+        LumenError::CannotSelfRevoke => (
             32,
             InvalidInput,
             NoRetry,
             "An admin cannot revoke their own role; use transfer_admin instead.",
         ),
-        NavinError::CarrierSuspended => (
+        LumenError::CarrierSuspended => (
             33,
             Unauthorized,
             RetryAfterStateChange,
             "Carrier account is suspended; contact the contract operator.",
         ),
-        NavinError::ForceCancelReasonHashMissing => (
+        LumenError::ForceCancelReasonHashMissing => (
             34,
             InvalidInput,
             NoRetry,
             "Force-cancel requires a non-zero reason hash.",
         ),
-        NavinError::ArithmeticError => (
+        LumenError::ArithmeticError => (
             35,
             Transient,
             NoRetry,
             "Arithmetic overflow/underflow in escrow calculation; check amounts.",
         ),
-        NavinError::DisputeReasonHashMissing => (
+        LumenError::DisputeReasonHashMissing => (
             36,
             InvalidInput,
             NoRetry,
             "Dispute resolution requires a non-zero reason hash.",
         ),
-        NavinError::CompanySuspended => (
+        LumenError::CompanySuspended => (
             37,
             Unauthorized,
             RetryAfterStateChange,
             "Company account is suspended; contact the contract operator.",
         ),
-        NavinError::ShipmentFinalized => (
+        LumenError::ShipmentFinalized => (
             38,
             InvalidState,
             NoRetry,
             "Shipment is finalised and locked; no further mutations are allowed.",
         ),
-        NavinError::TokenTransferFailed => (
+        LumenError::TokenTransferFailed => (
             39,
             Transient,
             RetryAfterDelay,
             "Cross-contract token transfer failed; retry after verifying token contract state.",
         ),
-        NavinError::TokenMintFailed => (
+        LumenError::TokenMintFailed => (
             40,
             Transient,
             RetryAfterDelay,
             "Cross-contract token mint failed; retry after verifying token contract state.",
         ),
-        NavinError::DuplicateAction => (
+        LumenError::DuplicateAction => (
             41,
             InvalidInput,
             NoRetry,
             "Action hash was already processed within the idempotency window.",
         ),
-        NavinError::ShipmentUnavailable => (
+        LumenError::ShipmentUnavailable => (
             42,
             InvalidState,
             RetryAfterStateChange,
             "Shipment state is unavailable (archived or expired); restore before retrying.",
         ),
-        NavinError::ContractPaused => (
+        LumenError::ContractPaused => (
             43,
             InvalidState,
             RetryAfterStateChange,
             "Contract is paused; wait for the operator to resume operations.",
         ),
-        NavinError::StatusHashNotFound => (
+        LumenError::StatusHashNotFound => (
             44,
             NotFound,
             NoRetry,
             "No status hash found for the given shipment and status.",
         ),
-        NavinError::DataHashMismatch => (
+        LumenError::DataHashMismatch => (
             45,
             InvalidInput,
             NoRetry,
             "Provided hash does not match the stored hash; recompute and resubmit.",
         ),
-        NavinError::CircuitBreakerOpen => (
+        LumenError::CircuitBreakerOpen => (
             46,
             Transient,
             RetryAfterDelay,
             "Circuit breaker is open; token transfers are temporarily disabled.",
         ),
-        NavinError::InvalidMigrationEdge => (
+        LumenError::InvalidMigrationEdge => (
             47,
             InvalidInput,
             NoRetry,
             "Migration version transition is not permitted.",
         ),
-        NavinError::MilestoneLimitExceeded => (
+        LumenError::MilestoneLimitExceeded => (
             48,
             LimitExceeded,
             NoRetry,
             "Maximum milestone events per shipment reached.",
         ),
-        NavinError::NoteLimitExceeded => (
+        LumenError::NoteLimitExceeded => (
             49,
             LimitExceeded,
             NoRetry,
             "Maximum note events per shipment reached.",
         ),
-        NavinError::EvidenceLimitExceeded => (
+        LumenError::EvidenceLimitExceeded => (
             50,
             LimitExceeded,
             NoRetry,
             "Maximum evidence entries per dispute reached.",
         ),
-        NavinError::BreachLimitExceeded => (
+        LumenError::BreachLimitExceeded => (
             51,
             LimitExceeded,
             NoRetry,
             "Maximum condition breach events per shipment reached.",
         ),
-        NavinError::InvalidTokenDecimals => (
+        LumenError::InvalidTokenDecimals => (
             52,
             InvalidInput,
             NoRetry,
             "Token decimals do not match the expected value (7); use a Stellar-standard token.",
         ),
-        NavinError::CreationQuotaExceeded => (
+        LumenError::CreationQuotaExceeded => (
             53,
             LimitExceeded,
             RetryAfterStateChange,
             "Company has exceeded the shipment creation quota for the current time window.",
         ),
-        NavinError::DependenciesNotMet => (
+        LumenError::DependenciesNotMet => (
             54,
             InvalidState,
             RetryAfterStateChange,
             "Shipment cannot transition to InTransit or Delivered because its prerequisite shipments are not yet completed.",
         ),
-        NavinError::CircularDependency => (
+        LumenError::CircularDependency => (
             55,
             InvalidInput,
             NoRetry,
             "A circular dependency was detected in the shipment prerequisites.",
         ),
-        NavinError::ProposalSaltReused => (
+        LumenError::ProposalSaltReused => (
             56,
             InvalidInput,
             NoRetry,
             "Proposal salt was already used in a prior proposal; replay attack prevented.",
         ),
-        NavinError::InvalidShipmentParticipants => (
+        LumenError::InvalidShipmentParticipants => (
             57,
             InvalidInput,
             NoRetry,
             "Shipment sender, receiver, and carrier must be three distinct addresses.",
         ),
-        NavinError::InvalidShipmentDeadline => (
+        LumenError::InvalidShipmentDeadline => (
             58,
             InvalidInput,
             NoRetry,
             "Shipment deadline must be strictly in the future.",
         ),
-        NavinError::InvalidPaymentMilestones => (
+        LumenError::InvalidPaymentMilestones => (
             59,
             InvalidInput,
             NoRetry,
             "Payment milestone structure is invalid; each percentage must be 1-100.",
         ),
-        NavinError::DuplicatePaymentMilestone => (
+        LumenError::DuplicatePaymentMilestone => (
             60,
             InvalidInput,
             NoRetry,
             "Payment milestone checkpoint names must be unique.",
         ),
-        NavinError::InvalidTokenAddress => (
+        LumenError::InvalidTokenAddress => (
             61,
             InvalidInput,
             NoRetry,
             "Shipment token address is invalid for this shipment.",
         ),
-        NavinError::InvalidPaymentMilestoneName => (
+        LumenError::InvalidPaymentMilestoneName => (
             62,
             InvalidInput,
             NoRetry,
             "Payment milestone checkpoint name has an invalid format.",
         ),
-        NavinError::MetadataSymbolCollision => (
+        LumenError::MetadataSymbolCollision => (
             63,
             InvalidInput,
             NoRetry,
             "Metadata key and value symbols are identical; use distinct symbols.",
         ),
-        NavinError::ExternalIntegrationFailed => (
+        LumenError::ExternalIntegrationFailed => (
             64,
             Transient,
             RetryAfterDelay,
             "External integration failed (e.g. backend token release); retry or rollback the state.",
         ),
-        NavinError::InvalidSymbol => (
+        LumenError::InvalidSymbol => (
             65,
             InvalidInput,
             NoRetry,
             "The provided symbol is empty or invalid.",
         ),
-        NavinError::NoteNotFound => (
+        LumenError::NoteNotFound => (
             66,
             NotFound,
             NoRetry,
             "Note not found or index out of bounds.",
         ),
-        NavinError::EvidenceNotFound => (
+        LumenError::EvidenceNotFound => (
             67,
             NotFound,
             NoRetry,
@@ -460,14 +460,14 @@ pub fn error_info(error: NavinError) -> ContractErrorInfo {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::errors::NavinError;
+    use crate::errors::LumenError;
 
     // ── Token transfer failure recovery — error mapping (issue #447) ─────────
 
     #[test]
     fn test_token_transfer_failed_info() {
-        let info = error_info(NavinError::TokenTransferFailed);
-        assert_eq!(info.error, NavinError::TokenTransferFailed);
+        let info = error_info(LumenError::TokenTransferFailed);
+        assert_eq!(info.error, LumenError::TokenTransferFailed);
         assert_eq!(info.code, 39);
         assert_eq!(info.category, ErrorCategory::Transient);
         assert_eq!(info.retry, RetryGuidance::RetryAfterDelay);
@@ -479,8 +479,8 @@ mod tests {
 
     #[test]
     fn test_circuit_breaker_open_info() {
-        let info = error_info(NavinError::CircuitBreakerOpen);
-        assert_eq!(info.error, NavinError::CircuitBreakerOpen);
+        let info = error_info(LumenError::CircuitBreakerOpen);
+        assert_eq!(info.error, LumenError::CircuitBreakerOpen);
         assert_eq!(info.code, 46);
         assert_eq!(info.category, ErrorCategory::Transient);
         assert_eq!(info.retry, RetryGuidance::RetryAfterDelay);
@@ -490,15 +490,15 @@ mod tests {
     /// must return identical results.
     #[test]
     fn test_error_info_is_deterministic() {
-        let a = error_info(NavinError::TokenTransferFailed);
-        let b = error_info(NavinError::TokenTransferFailed);
+        let a = error_info(LumenError::TokenTransferFailed);
+        let b = error_info(LumenError::TokenTransferFailed);
         assert_eq!(a.code, b.code);
         assert_eq!(a.category, b.category);
         assert_eq!(a.retry, b.retry);
         assert_eq!(a.message, b.message);
 
-        let c = error_info(NavinError::CircuitBreakerOpen);
-        let d = error_info(NavinError::CircuitBreakerOpen);
+        let c = error_info(LumenError::CircuitBreakerOpen);
+        let d = error_info(LumenError::CircuitBreakerOpen);
         assert_eq!(c.code, d.code);
         assert_eq!(c.category, d.category);
         assert_eq!(c.retry, d.retry);
@@ -509,9 +509,9 @@ mod tests {
     #[test]
     fn test_token_and_circuit_breaker_errors_use_retry_after_delay() {
         let transient_errors = [
-            NavinError::TokenTransferFailed,
-            NavinError::TokenMintFailed,
-            NavinError::CircuitBreakerOpen,
+            LumenError::TokenTransferFailed,
+            LumenError::TokenMintFailed,
+            LumenError::CircuitBreakerOpen,
         ];
         for err in &transient_errors {
             let info = error_info(*err);
@@ -530,16 +530,16 @@ mod tests {
         }
     }
 
-    /// Every error code in error_info must match its NavinError discriminant.
+    /// Every error code in error_info must match its LumenError discriminant.
     #[test]
     fn test_error_codes_match_discriminants() {
-        let cases: &[(NavinError, u32)] = &[
-            (NavinError::TokenTransferFailed, 39),
-            (NavinError::TokenMintFailed, 40),
-            (NavinError::CircuitBreakerOpen, 46),
-            (NavinError::ShipmentFinalized, 38),
-            (NavinError::ShipmentNotFound, 4),
-            (NavinError::Unauthorized, 3),
+        let cases: &[(LumenError, u32)] = &[
+            (LumenError::TokenTransferFailed, 39),
+            (LumenError::TokenMintFailed, 40),
+            (LumenError::CircuitBreakerOpen, 46),
+            (LumenError::ShipmentFinalized, 38),
+            (LumenError::ShipmentNotFound, 4),
+            (LumenError::Unauthorized, 3),
         ];
         for (err, expected_code) in cases {
             let info = error_info(*err);
@@ -558,8 +558,8 @@ mod tests {
     /// guidance — the caller must fix their role before retrying.
     #[test]
     fn test_unauthorized_error_info() {
-        let info = error_info(NavinError::Unauthorized);
-        assert_eq!(info.error, NavinError::Unauthorized);
+        let info = error_info(LumenError::Unauthorized);
+        assert_eq!(info.error, LumenError::Unauthorized);
         assert_eq!(info.code, 3);
         assert_eq!(info.category, ErrorCategory::Unauthorized);
         assert_eq!(info.retry, RetryGuidance::NoRetry);
@@ -574,8 +574,8 @@ mod tests {
     /// with `NoRetry` — joining the admin list requires admin action, not a retry.
     #[test]
     fn test_not_an_admin_error_info() {
-        let info = error_info(NavinError::NotAnAdmin);
-        assert_eq!(info.error, NavinError::NotAnAdmin);
+        let info = error_info(LumenError::NotAnAdmin);
+        assert_eq!(info.error, LumenError::NotAnAdmin);
         assert_eq!(info.code, 27);
         assert_eq!(info.category, ErrorCategory::Unauthorized);
         assert_eq!(info.retry, RetryGuidance::NoRetry);
@@ -587,7 +587,7 @@ mod tests {
     /// can classify them without switching on individual variants.
     #[test]
     fn test_auth_mismatch_errors_map_to_unauthorized_category() {
-        let auth_errors = [NavinError::Unauthorized, NavinError::NotAnAdmin];
+        let auth_errors = [LumenError::Unauthorized, LumenError::NotAnAdmin];
         for err in &auth_errors {
             let info = error_info(*err);
             assert_eq!(
@@ -609,15 +609,15 @@ mod tests {
     /// variants must return identical metadata.
     #[test]
     fn test_auth_error_info_is_deterministic() {
-        let a = error_info(NavinError::Unauthorized);
-        let b = error_info(NavinError::Unauthorized);
+        let a = error_info(LumenError::Unauthorized);
+        let b = error_info(LumenError::Unauthorized);
         assert_eq!(a.code, b.code);
         assert_eq!(a.category, b.category);
         assert_eq!(a.retry, b.retry);
         assert_eq!(a.message, b.message);
 
-        let c = error_info(NavinError::NotAnAdmin);
-        let d = error_info(NavinError::NotAnAdmin);
+        let c = error_info(LumenError::NotAnAdmin);
+        let d = error_info(LumenError::NotAnAdmin);
         assert_eq!(c.code, d.code);
         assert_eq!(c.category, d.category);
         assert_eq!(c.retry, d.retry);

@@ -1,4 +1,4 @@
-use crate::{test_utils, NavinShipment, NavinShipmentClient};
+use crate::{test_utils, LumenShipment, LumenShipmentClient};
 use soroban_sdk::{
     contract, contractimpl, testutils::Address as _, Address, BytesN, Env, Symbol, Vec,
 };
@@ -17,10 +17,10 @@ impl MockToken {
     }
 }
 
-fn setup_test(env: &Env) -> (NavinShipmentClient<'static>, Address, Address) {
+fn setup_test(env: &Env) -> (LumenShipmentClient<'static>, Address, Address) {
     let admin = Address::generate(env);
     let token_contract = env.register(MockToken {}, ());
-    let client = NavinShipmentClient::new(env, &env.register(NavinShipment, ()));
+    let client = LumenShipmentClient::new(env, &env.register(LumenShipment, ()));
     client.initialize(&admin, &token_contract);
     (client, admin, token_contract)
 }
@@ -226,7 +226,7 @@ fn test_suspension_with_rate_limit_exhaustion() {
     assert!(result.is_err());
     // Should be CompanySuspended (error code 37), not RateLimitExceeded
     let err = result.unwrap_err().unwrap();
-    assert_eq!(err, crate::NavinError::CompanySuspended);
+    assert_eq!(err, crate::LumenError::CompanySuspended);
 }
 
 /// Test: Recovery after suspension when rate limit window is active.

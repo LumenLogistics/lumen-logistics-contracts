@@ -128,6 +128,12 @@ pub enum DataKey {
     CreationQuotaConfig,
     /// Deterministic action digest stored on proposal creation.
     ProposalDigest(u64),
+    /// IoT sensor reading count for a shipment.
+    IoTReadingCount(u64),
+    /// Individual IoT data point stored per shipment and index.
+    IoTReading(u64, u32),
+    /// Priority level set for a shipment.
+    ShipmentPriority(u64),
 }
 
 /// Structured reason codes for escrow freeze events.
@@ -348,6 +354,12 @@ pub struct Shipment {
     pub integration_nonce: u32,
     /// Whether the shipment is finalized (terminal state reached and escrow cleared).
     pub finalized: bool,
+    /// Priority level of the shipment (Standard, Express, Critical).
+    pub priority: ShipmentPriority,
+    /// Optional SLA deadline in seconds (max allowed transit time).
+    pub sla_seconds: Option<u64>,
+    /// Number of IoT sensor readings recorded for this shipment.
+    pub iot_reading_count: u32,
 }
 
 /// A checkpoint milestone recorded during shipment transit.
@@ -506,6 +518,36 @@ pub enum GeofenceEvent {
     RouteDeviation,
 }
 
+/// Priority level of a shipment, affecting SLA enforcement and event routing.
+#[contracttype]
+#[derive(Clone, Debug, PartialEq)]
+pub enum ShipmentPriority {
+    /// Standard delivery with no special handling (default).
+    Standard,
+    /// Expedited handling; SLA breach triggers automatic alert events.
+    Express,
+    /// Mission-critical cargo; SLA breach triggers automatic dispute escalation.
+    Critical,
+}
+
+impl Default for ShipmentPriority {
+    fn default() -> Self {
+        ShipmentPriority::Standard
+    }
+}
+
+/// A single IoT sensor reading submitted on-chain via hash-and-emit.
+#[contracttype]
+#[derive(Clone, Debug)]
+pub struct IoTDataPoint {
+    /// SHA-256 hash of the raw sensor payload (temperature, humidity, GPS, etc.).
+    pub data_hash: BytesN<32>,
+    /// Sensor type identifier (e.g., "temp", "humid", "gps", "shock").
+    pub sensor_type: Symbol,
+    /// Ledger timestamp of the reading.
+    pub recorded_at: u64,
+}
+
 /// Input data for creating a shipment in a batch.
 ///
 /// # Examples
@@ -520,6 +562,30 @@ pub struct ShipmentInput {
     pub data_hash: BytesN<32>,
     pub payment_milestones: Vec<(Symbol, u32)>,
     pub deadline: u64,
+    /// Priority level; defaults to Standard if not specified.
+    pub priority: ShipmentPriority,
+    /// Optional SLA window in seconds from creation time.
+    pub sla_seconds: Option<u64>,
+}
+
+/// Summary score for a shipment's health and compliance.
+#[contracttype]
+#[derive(Clone, Debug)]
+pub struct ShipmentHealthScore {
+    /// Shipment identifier.
+    pub shipment_id: u64,
+    /// Aggregate score 0–100. Higher is healthier.
+    pub score: u32,
+    /// Number of condition breaches recorded.
+    pub breach_count: u32,
+    /// Number of IoT readings recorded.
+    pub iot_reading_count: u32,
+    /// Whether the shipment is past its SLA deadline.
+    pub sla_breached: bool,
+    /// Whether the shipment is past its delivery deadline.
+    pub deadline_breached: bool,
+    /// Number of disputes raised.
+    pub dispute_count: u32,
 }
 
 /// Cursor page result for searching shipment IDs by status.

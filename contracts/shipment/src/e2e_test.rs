@@ -1,5 +1,5 @@
 // =============================================================================
-// End-to-End Integration Test: NavinShipment + NavinToken (Real Token Contract)
+// End-to-End Integration Test: LumenShipment + NavinToken (Real Token Contract)
 //
 // Covers four lifecycle paths, all with real token balance verification:
 //   1. HAPPY PATH          — deposit → milestones (100 %) → delivery → full release
@@ -14,7 +14,7 @@
 
 extern crate std;
 
-use crate::{test_utils::setup_env, NavinShipment, NavinShipmentClient, ShipmentStatus};
+use crate::{test_utils::setup_env, LumenShipment, LumenShipmentClient, ShipmentStatus};
 use navin_token::{NavinToken, NavinTokenClient};
 use soroban_sdk::{
     testutils::{Address as _, Events, Ledger as _},
@@ -46,15 +46,15 @@ fn deploy_token<'a>(env: &'a Env, admin: &Address) -> (Address, NavinTokenClient
 }
 
 // ---------------------------------------------------------------------------
-// Helper: deploy + initialise NavinShipment
+// Helper: deploy + initialise LumenShipment
 // ---------------------------------------------------------------------------
 fn deploy_shipment<'a>(
     env: &'a Env,
     admin: &Address,
     token_id: &Address,
-) -> NavinShipmentClient<'a> {
-    let contract_id = env.register(NavinShipment, ());
-    let client = NavinShipmentClient::new(env, &contract_id);
+) -> LumenShipmentClient<'a> {
+    let contract_id = env.register(LumenShipment, ());
+    let client = LumenShipmentClient::new(env, &contract_id);
     client.initialize(admin, token_id);
     client
 }

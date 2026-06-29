@@ -4,7 +4,7 @@
 //! Stellar Asset Contract (SAC) tokens and custom token contracts (NavinToken).
 #![allow(deprecated)]
 
-use crate::{test_utils, types::ShipmentStatus, NavinError, NavinShipment, NavinShipmentClient};
+use crate::{test_utils, types::ShipmentStatus, LumenError, LumenShipment, LumenShipmentClient};
 use soroban_sdk::{testutils::Address as _, Address, BytesN, Env, IntoVal, Vec};
 
 // Import custom token client
@@ -19,7 +19,7 @@ enum TokenVariant {
 
 struct TestContext {
     env: Env,
-    shipment_client: NavinShipmentClient<'static>,
+    shipment_client: LumenShipmentClient<'static>,
     token_address: Address,
     variant: TokenVariant,
     admin: Address,
@@ -54,8 +54,8 @@ fn setup_test(variant: TokenVariant) -> TestContext {
         }
     };
 
-    let shipment_addr = env.register(NavinShipment, ());
-    let shipment_client = NavinShipmentClient::new(&env, &shipment_addr);
+    let shipment_addr = env.register(LumenShipment, ());
+    let shipment_client = LumenShipmentClient::new(&env, &shipment_addr);
     shipment_client.initialize(&admin, &token_address);
 
     // Roles setup
@@ -298,7 +298,7 @@ fn run_insufficient_funds_test(variant: TokenVariant) {
 
     assert!(result.is_err());
     let err = result.unwrap_err().unwrap();
-    assert_eq!(err, NavinError::TokenTransferFailed);
+    assert_eq!(err, LumenError::TokenTransferFailed);
 }
 
 // ── Behavioral Assumptions ──────────────────────────────────────────────────
@@ -312,7 +312,7 @@ fn run_insufficient_funds_test(variant: TokenVariant) {
 //
 // 3. Error Mapping: Any failure in the token's transfer method (due to
 //    insufficient balance, frozen accounts, etc.) is captured by the shipment
-//    contract and returned as NavinError::TokenTransferFailed.
+//    contract and returned as LumenError::TokenTransferFailed.
 //
 // 4. Escrow Custody: The shipment contract acts as the custodian of escrowed tokens.
 //    It must have been authorized (via approve or being the target of transfer)
@@ -391,7 +391,7 @@ fn test_token_with_6_decimals_deposit_fails_with_invalid_token_decimals() {
     // A token with 6 decimals must be rejected at deposit_escrow time.
     let (env, admin) = test_utils::setup_env();
     let token = env.register(mock_six_decimals::SixDecimalsToken {}, ());
-    let client = NavinShipmentClient::new(&env, &env.register(NavinShipment, ()));
+    let client = LumenShipmentClient::new(&env, &env.register(LumenShipment, ()));
     client.initialize(&admin, &token);
 
     let company = Address::generate(&env);
@@ -415,7 +415,7 @@ fn test_token_with_6_decimals_deposit_fails_with_invalid_token_decimals() {
     let result = client.try_deposit_escrow(&company, &shipment_id, &500i128);
     assert_eq!(
         result,
-        Err(Ok(NavinError::InvalidTokenDecimals)),
+        Err(Ok(LumenError::InvalidTokenDecimals)),
         "Token with 6 decimals must be rejected with InvalidTokenDecimals"
     );
 }
@@ -425,7 +425,7 @@ fn test_token_with_8_decimals_deposit_fails_with_invalid_token_decimals() {
     // A token with 8 decimals must also be rejected at deposit_escrow time.
     let (env, admin) = test_utils::setup_env();
     let token = env.register(mock_eight_decimals::EightDecimalsToken {}, ());
-    let client = NavinShipmentClient::new(&env, &env.register(NavinShipment, ()));
+    let client = LumenShipmentClient::new(&env, &env.register(LumenShipment, ()));
     client.initialize(&admin, &token);
 
     let company = Address::generate(&env);
@@ -449,7 +449,7 @@ fn test_token_with_8_decimals_deposit_fails_with_invalid_token_decimals() {
     let result = client.try_deposit_escrow(&company, &shipment_id, &500i128);
     assert_eq!(
         result,
-        Err(Ok(NavinError::InvalidTokenDecimals)),
+        Err(Ok(LumenError::InvalidTokenDecimals)),
         "Token with 8 decimals must be rejected with InvalidTokenDecimals"
     );
 }

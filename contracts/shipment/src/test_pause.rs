@@ -4,7 +4,7 @@
 mod tests {
     use crate::test_utils::*;
     use crate::types::*;
-    use crate::{NavinShipment, NavinShipmentClient};
+    use crate::{LumenShipment, LumenShipmentClient};
     use soroban_sdk::{contract, contractimpl, testutils::Address as _, testutils::Ledger as _, Address, BytesN, Env, Vec};
 
     #[contract]
@@ -21,10 +21,10 @@ mod tests {
         }
     }
 
-    fn setup_test_env() -> (Env, NavinShipmentClient<'static>, Address, Address) {
+    fn setup_test_env() -> (Env, LumenShipmentClient<'static>, Address, Address) {
         let (env, admin) = setup_env();
         let token_contract = env.register(MockToken {}, ());
-        let client = NavinShipmentClient::new(&env, &env.register(NavinShipment, ()));
+        let client = LumenShipmentClient::new(&env, &env.register(LumenShipment, ()));
         (env, client, admin, token_contract)
     }
 
@@ -275,7 +275,7 @@ mod tests {
         let update_result =
             client.try_update_status(&carrier, &shipment_id, &ShipmentStatus::InTransit, &hash);
         assert!(
-            matches!(update_result, Err(Ok(crate::NavinError::ShipmentFinalized))),
+            matches!(update_result, Err(Ok(crate::LumenError::ShipmentFinalized))),
             "update_status must still be rejected after pause/unpause cycle"
         );
 
@@ -283,7 +283,7 @@ mod tests {
         assert!(
             matches!(
                 deposit_result,
-                Err(Ok(crate::NavinError::ShipmentFinalized))
+                Err(Ok(crate::LumenError::ShipmentFinalized))
             ),
             "deposit_escrow must still be rejected after pause/unpause cycle"
         );
@@ -563,7 +563,7 @@ mod tests {
         // Should fail with ContractPaused, not CircuitBreakerOpen
         assert!(result.is_err());
         let err = result.unwrap_err().unwrap();
-        assert_eq!(err, crate::NavinError::ContractPaused);
+        assert_eq!(err, crate::LumenError::ContractPaused);
     }
 
     /// Test: Circuit breaker state persists across pause/unpause cycles.

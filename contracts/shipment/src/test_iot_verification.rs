@@ -4,7 +4,7 @@
 mod tests {
     use crate::test_utils::*;
     use crate::types::*;
-    use crate::{NavinShipment, NavinShipmentClient};
+    use crate::{LumenShipment, LumenShipmentClient};
     use soroban_sdk::{contract, contractimpl, testutils::Address as _, Address, BytesN, Env, Vec};
 
     #[contract]
@@ -21,10 +21,10 @@ mod tests {
         }
     }
 
-    fn setup_test_env() -> (Env, NavinShipmentClient<'static>, Address, Address) {
+    fn setup_test_env() -> (Env, LumenShipmentClient<'static>, Address, Address) {
         let (env, admin) = setup_env();
         let token_contract = env.register(MockToken {}, ());
-        let client = NavinShipmentClient::new(&env, &env.register(NavinShipment, ()));
+        let client = LumenShipmentClient::new(&env, &env.register(LumenShipment, ()));
         (env, client, admin, token_contract)
     }
 

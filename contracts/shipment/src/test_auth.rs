@@ -20,7 +20,7 @@
 
 extern crate std;
 
-use crate::{NavinShipment, NavinShipmentClient, ShipmentStatus};
+use crate::{LumenShipment, LumenShipmentClient, ShipmentStatus};
 use soroban_sdk::{
     contract, contractimpl,
     testutils::{Address as _, AuthorizedFunction, AuthorizedInvocation, Ledger as _},
@@ -52,17 +52,17 @@ impl MockToken {
 // ── Shared setup helpers ──────────────────────────────────────────────────────
 
 /// Full environment with `mock_all_auths()` active (for positive tests).
-fn setup_env() -> (Env, NavinShipmentClient<'static>, Address, Address) {
+fn setup_env() -> (Env, LumenShipmentClient<'static>, Address, Address) {
     let (env, admin) = crate::test_utils::setup_env();
     let token = env.register(MockToken {}, ());
-    let contract_id = env.register(NavinShipment, ());
-    let client = NavinShipmentClient::new(&env, &contract_id);
+    let contract_id = env.register(LumenShipment, ());
+    let client = LumenShipmentClient::new(&env, &contract_id);
     client.initialize(&admin, &token);
     (env, client, admin, token)
 }
 
 // ── Helper: contract id from client ──────────────────────────────────────────
-fn contract_id(client: &NavinShipmentClient<'static>) -> Address {
+fn contract_id(client: &LumenShipmentClient<'static>) -> Address {
     client.address.clone()
 }
 
@@ -540,8 +540,8 @@ fn test_auth_add_company_fails_without_auth() {
     let admin = Address::generate(&env);
     let company = Address::generate(&env);
     let token = env.register(MockToken {}, ());
-    let cid = env.register(NavinShipment, ());
-    let client = NavinShipmentClient::new(&env, &cid);
+    let cid = env.register(LumenShipment, ());
+    let client = LumenShipmentClient::new(&env, &cid);
 
     // initialize does not require_auth — safe without any mock
     client.initialize(&admin, &token);
@@ -571,8 +571,8 @@ fn test_auth_create_shipment_fails_without_auth() {
     let data_hash = BytesN::from_array(&env, &[1u8; 32]);
     let admin = Address::generate(&env);
     let token = env.register(MockToken {}, ());
-    let cid = env.register(NavinShipment, ());
-    let client = NavinShipmentClient::new(&env, &cid);
+    let cid = env.register(LumenShipment, ());
+    let client = LumenShipmentClient::new(&env, &cid);
     let deadline = env.ledger().timestamp() + 3_600;
 
     client.initialize(&admin, &token); // no auth needed
@@ -607,8 +607,8 @@ fn test_auth_update_status_fails_without_auth() {
     let carrier = Address::generate(&env);
     let status_hash = BytesN::from_array(&env, &[2u8; 32]);
     let token = env.register(MockToken {}, ());
-    let cid = env.register(NavinShipment, ());
-    let client = NavinShipmentClient::new(&env, &cid);
+    let cid = env.register(LumenShipment, ());
+    let client = LumenShipmentClient::new(&env, &cid);
 
     client.initialize(&admin, &token);
 
@@ -636,8 +636,8 @@ fn test_auth_confirm_delivery_fails_without_auth() {
     let receiver = Address::generate(&env);
     let confirm_hash = BytesN::from_array(&env, &[7u8; 32]);
     let token = env.register(MockToken {}, ());
-    let cid = env.register(NavinShipment, ());
-    let client = NavinShipmentClient::new(&env, &cid);
+    let cid = env.register(LumenShipment, ());
+    let client = LumenShipmentClient::new(&env, &cid);
 
     client.initialize(&admin, &token);
 
@@ -663,8 +663,8 @@ fn test_auth_force_cancel_fails_without_auth() {
     let admin = Address::generate(&env);
     let reason_hash = BytesN::from_array(&env, &[2u8; 32]);
     let token = env.register(MockToken {}, ());
-    let cid = env.register(NavinShipment, ());
-    let client = NavinShipmentClient::new(&env, &cid);
+    let cid = env.register(LumenShipment, ());
+    let client = LumenShipmentClient::new(&env, &cid);
 
     client.initialize(&admin, &token);
 
@@ -741,8 +741,8 @@ fn test_auth_add_guardian_fails_without_auth() {
     let admin = Address::generate(&env);
     let guardian = Address::generate(&env);
     let token = env.register(MockToken {}, ());
-    let cid = env.register(NavinShipment, ());
-    let client = NavinShipmentClient::new(&env, &cid);
+    let cid = env.register(LumenShipment, ());
+    let client = LumenShipmentClient::new(&env, &cid);
 
     client.initialize(&admin, &token);
 
@@ -766,8 +766,8 @@ fn test_auth_add_operator_fails_without_auth() {
     let admin = Address::generate(&env);
     let operator = Address::generate(&env);
     let token = env.register(MockToken {}, ());
-    let cid = env.register(NavinShipment, ());
-    let client = NavinShipmentClient::new(&env, &cid);
+    let cid = env.register(LumenShipment, ());
+    let client = LumenShipmentClient::new(&env, &cid);
 
     client.initialize(&admin, &token);
 
@@ -784,7 +784,7 @@ fn test_auth_add_operator_fails_without_auth() {
 //
 // These tests verify that when a caller has valid authentication (mock_all_auths
 // is active so require_auth passes) but lacks the required role, the contract
-// maps the failure to the correct NavinError variant with the expected category
+// maps the failure to the correct LumenError variant with the expected category
 // and retry guidance.
 
 /// A company caller must not be able to call `add_company` — that is an
@@ -850,9 +850,9 @@ fn test_wrong_role_suspend_company_returns_error() {
 #[test]
 fn test_wrong_role_error_maps_to_unauthorized_category() {
     use crate::error_map::{error_info, ErrorCategory, RetryGuidance};
-    use crate::NavinError;
+    use crate::LumenError;
 
-    let info = error_info(NavinError::Unauthorized);
+    let info = error_info(LumenError::Unauthorized);
     assert_eq!(
         info.category,
         ErrorCategory::Unauthorized,
@@ -881,7 +881,7 @@ fn test_wrong_role_error_maps_to_unauthorized_category() {
 // where company/carrier actors supply arbitrary Symbol keys and values.
 
 /// An empty Symbol (0 characters, XDR = 8 bytes) must be rejected with
-/// `NavinError::InvalidSymbol` by the whitespace-rejection helper.
+/// `LumenError::InvalidSymbol` by the whitespace-rejection helper.
 #[test]
 fn test_whitespace_only_symbol_empty_returns_invalid_symbol() {
     let (env, client, _admin, _token) = setup_env();
@@ -894,7 +894,7 @@ fn test_whitespace_only_symbol_empty_returns_invalid_symbol() {
 
     assert_eq!(
         result,
-        Err(crate::NavinError::InvalidSymbol),
+        Err(crate::LumenError::InvalidSymbol),
         "empty Symbol must be rejected as whitespace-only"
     );
 }
@@ -929,7 +929,7 @@ fn test_oversized_symbol_rejected_by_whitespace_helper() {
 
     assert_eq!(
         result,
-        Err(crate::NavinError::InvalidSymbol),
+        Err(crate::LumenError::InvalidSymbol),
         "oversized Symbol must be rejected by the whitespace helper"
     );
 }
@@ -966,7 +966,7 @@ fn test_set_shipment_metadata_rejects_empty_key_symbol() {
 
     assert_eq!(
         result,
-        Err(Ok(crate::NavinError::InvalidSymbol)),
+        Err(Ok(crate::LumenError::InvalidSymbol)),
         "set_shipment_metadata with an empty key Symbol must return InvalidSymbol"
     );
 }
@@ -1002,7 +1002,7 @@ fn test_set_shipment_metadata_rejects_empty_value_symbol() {
 
     assert_eq!(
         result,
-        Err(Ok(crate::NavinError::InvalidSymbol)),
+        Err(Ok(crate::LumenError::InvalidSymbol)),
         "set_shipment_metadata with an empty value Symbol must return InvalidSymbol"
     );
 }

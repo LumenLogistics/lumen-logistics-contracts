@@ -9,7 +9,7 @@
 
 #[cfg(test)]
 mod tests {
-    use crate::{test_utils, NavinError, NavinShipment, NavinShipmentClient};
+    use crate::{test_utils, LumenError, LumenShipment, LumenShipmentClient};
     use soroban_sdk::testutils::Ledger as _;
     use soroban_sdk::{contract, contractimpl, testutils::Address as _, Address, BytesN, Env, Vec};
 
@@ -23,10 +23,10 @@ mod tests {
         }
     }
 
-    fn setup_multisig() -> (Env, NavinShipmentClient<'static>, Address, Address) {
+    fn setup_multisig() -> (Env, LumenShipmentClient<'static>, Address, Address) {
         let (env, admin) = test_utils::setup_env();
-        let contract_id = env.register(NavinShipment, ());
-        let client = NavinShipmentClient::new(&env, &contract_id);
+        let contract_id = env.register(LumenShipment, ());
+        let client = LumenShipmentClient::new(&env, &contract_id);
         let token_id = env.register(MockToken, ());
         client.initialize(&admin, &token_id);
 
@@ -127,7 +127,7 @@ mod tests {
         let (_env, client, _admin, _admin2) = setup_multisig();
 
         let result = client.try_get_proposal_action_digest(&9999);
-        assert_eq!(result, Err(Ok(NavinError::ProposalNotFound)));
+        assert_eq!(result, Err(Ok(LumenError::ProposalNotFound)));
     }
 
     // ── digest exposed in proposal lifecycle ─────────────────────────────────
@@ -211,7 +211,7 @@ mod tests {
 
         // Attempt to approve should fail with ProposalExpired
         let result = client.try_approve_action(&admin2, &proposal_id);
-        assert_eq!(result, Err(Ok(crate::NavinError::ProposalExpired)));
+        assert_eq!(result, Err(Ok(crate::LumenError::ProposalExpired)));
     }
 
     /// Test: Advance time beyond expiry window, then verify proposal cannot be executed.
@@ -239,7 +239,7 @@ mod tests {
 
         // Attempt to execute should fail even though we have 1 approval
         let result = client.try_execute_proposal(&proposal_id);
-        assert_eq!(result, Err(Ok(crate::NavinError::ProposalExpired)));
+        assert_eq!(result, Err(Ok(crate::LumenError::ProposalExpired)));
     }
 
     /// Test: Verify the expiry flow is deterministic across multiple checks.
@@ -259,9 +259,9 @@ mod tests {
         let result2 = client.try_approve_action(&admin2, &proposal_id);
         let result3 = client.try_approve_action(&admin2, &proposal_id);
 
-        assert_eq!(result1, Err(Ok(crate::NavinError::ProposalExpired)));
-        assert_eq!(result2, Err(Ok(crate::NavinError::ProposalExpired)));
-        assert_eq!(result3, Err(Ok(crate::NavinError::ProposalExpired)));
+        assert_eq!(result1, Err(Ok(crate::LumenError::ProposalExpired)));
+        assert_eq!(result2, Err(Ok(crate::LumenError::ProposalExpired)));
+        assert_eq!(result3, Err(Ok(crate::LumenError::ProposalExpired)));
     }
 
     /// Test: Proposal state remains consistent after expiry (can still be queried).
@@ -322,7 +322,7 @@ mod tests {
         let result_past_boundary = client.try_approve_action(&admin2, &proposal_id);
         assert_eq!(
             result_past_boundary,
-            Err(Ok(crate::NavinError::ProposalExpired))
+            Err(Ok(crate::LumenError::ProposalExpired))
         );
     }
 
@@ -352,7 +352,7 @@ mod tests {
 
         // proposal1 should be expired
         let result1 = client.try_approve_action(&admin2, &proposal1);
-        assert_eq!(result1, Err(Ok(crate::NavinError::ProposalExpired)));
+        assert_eq!(result1, Err(Ok(crate::LumenError::ProposalExpired)));
 
         // proposal2 should still be usable
         let result2 = client.try_approve_action(&admin2, &proposal2);
@@ -388,11 +388,11 @@ mod tests {
 
         // Cannot add more approvals
         let approve_result = client.try_approve_action(&admin3, &proposal_id);
-        assert_eq!(approve_result, Err(Ok(crate::NavinError::ProposalExpired)));
+        assert_eq!(approve_result, Err(Ok(crate::LumenError::ProposalExpired)));
 
         // Cannot execute even though we have 2 approvals
         let execute_result = client.try_execute_proposal(&proposal_id);
-        assert_eq!(execute_result, Err(Ok(crate::NavinError::ProposalExpired)));
+        assert_eq!(execute_result, Err(Ok(crate::LumenError::ProposalExpired)));
     }
 
     /// Test: Cleanup assertion - expired proposal digest remains queryable.
@@ -441,7 +441,7 @@ mod tests {
 
         // Should be expired
         let result = client.try_approve_action(&admin2, &proposal_id);
-        assert_eq!(result, Err(Ok(crate::NavinError::ProposalExpired)));
+        assert_eq!(result, Err(Ok(crate::LumenError::ProposalExpired)));
     }
 
     /// Test: Very short expiry window (edge case for rapid expiry).
@@ -513,8 +513,8 @@ mod tests {
         let execute_result = client.try_execute_proposal(&proposal_id);
 
         // Both should return the same ProposalExpired error
-        assert_eq!(approve_result, Err(Ok(crate::NavinError::ProposalExpired)));
-        assert_eq!(execute_result, Err(Ok(crate::NavinError::ProposalExpired)));
+        assert_eq!(approve_result, Err(Ok(crate::LumenError::ProposalExpired)));
+        assert_eq!(execute_result, Err(Ok(crate::LumenError::ProposalExpired)));
     }
 
     // ── Proposal expiration and cleanup flow ──────────────────────────────────
@@ -538,7 +538,7 @@ mod tests {
         let result = client.try_execute_proposal(&proposal_id);
         assert_eq!(
             result,
-            Err(Ok(NavinError::ProposalExpired)),
+            Err(Ok(LumenError::ProposalExpired)),
             "Expired proposal must reject execution"
         );
     }
@@ -559,7 +559,7 @@ mod tests {
         let result = client.try_approve_action(&admin2, &proposal_id);
         assert_eq!(
             result,
-            Err(Ok(NavinError::ProposalExpired)),
+            Err(Ok(LumenError::ProposalExpired)),
             "Cannot approve an expired proposal"
         );
     }
@@ -580,7 +580,7 @@ mod tests {
         let exec_result = client.try_execute_proposal(&proposal_id);
         assert_eq!(
             exec_result,
-            Err(Ok(NavinError::ProposalExpired)),
+            Err(Ok(LumenError::ProposalExpired)),
             "Proposal must be expired"
         );
 
@@ -612,7 +612,7 @@ mod tests {
         // Verify first proposal is expired
         assert_eq!(
             client.try_execute_proposal(&proposal_id_1),
-            Err(Ok(NavinError::ProposalExpired))
+            Err(Ok(LumenError::ProposalExpired))
         );
 
         // Now create a new proposal - should succeed even with expired proposal in storage
@@ -661,7 +661,7 @@ mod tests {
         let result = client.try_approve_action(&admin, &proposal_id);
         assert_eq!(
             result,
-            Err(Ok(NavinError::ProposalExpired)),
+            Err(Ok(LumenError::ProposalExpired)),
             "Proposal must be expired after 7-day threshold"
         );
     }

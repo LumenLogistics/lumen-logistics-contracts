@@ -7,13 +7,13 @@ use soroban_sdk::contracterror;
 ///
 /// # Examples
 /// ```rust
-/// use crate::errors::NavinError;
-/// let error = NavinError::ShipmentNotFound;
+/// use crate::errors::LumenError;
+/// let error = LumenError::ShipmentNotFound;
 /// ```
 #[contracterror(export = false)]
 #[derive(Copy, Clone, Debug, Eq, PartialEq, PartialOrd, Ord)]
 #[repr(u32)]
-pub enum NavinError {
+pub enum LumenError {
     /// Contract is already initialized.
     AlreadyInitialized = 1,
     /// Contract has not been initialized.

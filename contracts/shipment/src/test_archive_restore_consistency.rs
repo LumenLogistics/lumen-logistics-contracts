@@ -9,7 +9,7 @@
 #[cfg(test)]
 mod tests {
     extern crate std;
-    use crate::{test_utils, LumenShipment, LumenShipmentClient, OrbitHaulError, ShipmentStatus};
+    use crate::{test_utils, OrbitHaulShipment, OrbitHaulShipmentClient, OrbitHaulError, ShipmentStatus};
     use soroban_sdk::{contract, contractimpl, testutils::Address as _, Address, BytesN, Env, Vec};
 
     #[contract]
@@ -31,10 +31,10 @@ mod tests {
         }
     }
 
-    fn setup() -> (Env, LumenShipmentClient<'static>, Address) {
+    fn setup() -> (Env, OrbitHaulShipmentClient<'static>, Address) {
         let (env, admin) = test_utils::setup_env();
-        let contract_id = env.register(LumenShipment, ());
-        let client = LumenShipmentClient::new(&env, &contract_id);
+        let contract_id = env.register(OrbitHaulShipment, ());
+        let client = OrbitHaulShipmentClient::new(&env, &contract_id);
         let token_id = env.register(MockToken, ());
         client.initialize(&admin, &token_id);
         (env, client, admin)
@@ -44,7 +44,7 @@ mod tests {
     /// Returns (shipment_id, company, receiver, carrier, data_hash).
     fn create_and_archive(
         env: &Env,
-        client: &LumenShipmentClient<'static>,
+        client: &OrbitHaulShipmentClient<'static>,
         admin: &Address,
         seed: u8,
     ) -> (u64, Address, Address, Address, BytesN<32>) {

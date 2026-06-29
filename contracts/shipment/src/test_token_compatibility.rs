@@ -5,7 +5,7 @@
 #![allow(deprecated)]
 
 use crate::{
-    test_utils, types::ShipmentStatus, LumenShipment, LumenShipmentClient, OrbitHaulError,
+    test_utils, types::ShipmentStatus, OrbitHaulShipment, OrbitHaulShipmentClient, OrbitHaulError,
 };
 use soroban_sdk::{testutils::Address as _, Address, BytesN, Env, IntoVal, Vec};
 
@@ -21,7 +21,7 @@ enum TokenVariant {
 
 struct TestContext {
     env: Env,
-    shipment_client: LumenShipmentClient<'static>,
+    shipment_client: OrbitHaulShipmentClient<'static>,
     token_address: Address,
     variant: TokenVariant,
     admin: Address,
@@ -56,8 +56,8 @@ fn setup_test(variant: TokenVariant) -> TestContext {
         }
     };
 
-    let shipment_addr = env.register(LumenShipment, ());
-    let shipment_client = LumenShipmentClient::new(&env, &shipment_addr);
+    let shipment_addr = env.register(OrbitHaulShipment, ());
+    let shipment_client = OrbitHaulShipmentClient::new(&env, &shipment_addr);
     shipment_client.initialize(&admin, &token_address);
 
     // Roles setup
@@ -393,7 +393,7 @@ fn test_token_with_6_decimals_deposit_fails_with_invalid_token_decimals() {
     // A token with 6 decimals must be rejected at deposit_escrow time.
     let (env, admin) = test_utils::setup_env();
     let token = env.register(mock_six_decimals::SixDecimalsToken {}, ());
-    let client = LumenShipmentClient::new(&env, &env.register(LumenShipment, ()));
+    let client = OrbitHaulShipmentClient::new(&env, &env.register(OrbitHaulShipment, ()));
     client.initialize(&admin, &token);
 
     let company = Address::generate(&env);
@@ -427,7 +427,7 @@ fn test_token_with_8_decimals_deposit_fails_with_invalid_token_decimals() {
     // A token with 8 decimals must also be rejected at deposit_escrow time.
     let (env, admin) = test_utils::setup_env();
     let token = env.register(mock_eight_decimals::EightDecimalsToken {}, ());
-    let client = LumenShipmentClient::new(&env, &env.register(LumenShipment, ()));
+    let client = OrbitHaulShipmentClient::new(&env, &env.register(OrbitHaulShipment, ()));
     client.initialize(&admin, &token);
 
     let company = Address::generate(&env);

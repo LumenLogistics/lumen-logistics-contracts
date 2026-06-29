@@ -7,6 +7,8 @@
 mod actor_quota_tests {
     extern crate std;
     use crate::rate_limit::{QuotaTracker, RateLimitConfig};
+    #[allow(unused_imports)]
+    use std::{format, vec};
 
     /// Test that ActorQuota replenishes when window expires with exact boundary crossing.
     ///
@@ -137,7 +139,7 @@ mod actor_quota_tests {
     /// permissive rate limit configurations.
     #[test]
     fn test_quota_replenishment_with_different_configs() {
-        let configs = vec![
+        let configs = [
             ("strict", RateLimitConfig::strict()),
             ("default", RateLimitConfig::default()),
             ("permissive", RateLimitConfig::permissive()),

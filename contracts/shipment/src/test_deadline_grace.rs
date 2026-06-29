@@ -13,7 +13,7 @@
 
 #[cfg(test)]
 mod tests {
-    use crate::{test_utils, LumenShipment, LumenShipmentClient, ShipmentStatus};
+    use crate::{test_utils, OrbitHaulShipment, OrbitHaulShipmentClient, ShipmentStatus};
     use soroban_sdk::{contract, contractimpl, testutils::Address as _, Address, BytesN, Env, Vec};
 
     #[contract]
@@ -27,10 +27,10 @@ mod tests {
         }
     }
 
-    fn setup() -> (Env, LumenShipmentClient<'static>, Address) {
+    fn setup() -> (Env, OrbitHaulShipmentClient<'static>, Address) {
         let (env, admin) = test_utils::setup_env();
-        let contract_id = env.register(LumenShipment, ());
-        let client = LumenShipmentClient::new(&env, &contract_id);
+        let contract_id = env.register(OrbitHaulShipment, ());
+        let client = OrbitHaulShipmentClient::new(&env, &contract_id);
         let token_id = env.register(MockToken, ());
         client.initialize(&admin, &token_id);
         (env, client, admin)
@@ -39,7 +39,7 @@ mod tests {
     /// Helper: create a shipment with a specific deadline. Returns shipment_id.
     fn create_with_deadline(
         env: &Env,
-        client: &LumenShipmentClient<'static>,
+        client: &OrbitHaulShipmentClient<'static>,
         admin: &Address,
         seed: u8,
         deadline: u64,
@@ -64,7 +64,7 @@ mod tests {
 
     /// Helper: configure a grace period of `grace` seconds and return the
     /// updated config.
-    fn set_grace(client: &LumenShipmentClient<'static>, admin: &Address, grace: u64) {
+    fn set_grace(client: &OrbitHaulShipmentClient<'static>, admin: &Address, grace: u64) {
         let mut cfg = client.get_contract_config();
         cfg.deadline_grace_seconds = grace;
         client.update_config(admin, &cfg);

@@ -7,13 +7,13 @@ use soroban_sdk::contracterror;
 ///
 /// # Examples
 /// ```rust
-/// use crate::errors::LumenError;
-/// let error = LumenError::ShipmentNotFound;
+/// use crate::errors::OrbitHaulError;
+/// let error = OrbitHaulError::ShipmentNotFound;
 /// ```
 #[contracterror(export = false)]
 #[derive(Copy, Clone, Debug, Eq, PartialEq, PartialOrd, Ord)]
 #[repr(u32)]
-pub enum LumenError {
+pub enum OrbitHaulError {
     /// Contract is already initialized.
     AlreadyInitialized = 1,
     /// Contract has not been initialized.

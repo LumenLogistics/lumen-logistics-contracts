@@ -78,7 +78,7 @@ mod mock_fail {
 use crate::{
     test_utils,
     types::{SettlementOperation, SettlementState, ShipmentInput},
-    LumenShipment, LumenShipmentClient, OrbitHaulError, ShipmentStatus,
+    OrbitHaulShipment, OrbitHaulShipmentClient, OrbitHaulError, ShipmentStatus,
 };
 use soroban_sdk::{
     testutils::{Address as _, Events as _},
@@ -91,7 +91,7 @@ fn dummy_hash(env: &Env, seed: u8) -> BytesN<32> {
 
 struct Ctx {
     env: Env,
-    client: LumenShipmentClient<'static>,
+    client: OrbitHaulShipmentClient<'static>,
     #[allow(dead_code)]
     admin: Address,
     company: Address,
@@ -101,7 +101,7 @@ struct Ctx {
 fn setup_ok() -> Ctx {
     let (env, admin) = test_utils::setup_env();
     let token = env.register(mock_ok::MockToken {}, ());
-    let client = LumenShipmentClient::new(&env, &env.register(LumenShipment, ()));
+    let client = OrbitHaulShipmentClient::new(&env, &env.register(OrbitHaulShipment, ()));
     client.initialize(&admin, &token);
     let company = Address::generate(&env);
     let carrier = Address::generate(&env);
@@ -120,7 +120,7 @@ fn setup_ok() -> Ctx {
 fn setup_fail() -> Ctx {
     let (env, admin) = test_utils::setup_env();
     let token = env.register(mock_fail::FailingToken {}, ());
-    let client = LumenShipmentClient::new(&env, &env.register(LumenShipment, ()));
+    let client = OrbitHaulShipmentClient::new(&env, &env.register(OrbitHaulShipment, ()));
     client.initialize(&admin, &token);
     let company = Address::generate(&env);
     let carrier = Address::generate(&env);

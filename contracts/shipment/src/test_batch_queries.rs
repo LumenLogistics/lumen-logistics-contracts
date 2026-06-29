@@ -1,6 +1,6 @@
 extern crate std;
 
-use crate::{test::setup_shipment_env, LumenError, ShipmentStatus};
+use crate::{test::setup_shipment_env, OrbitHaulError, ShipmentStatus};
 use soroban_sdk::{testutils::Address as _, Address, BytesN, Vec};
 
 fn create_shipment_for(
@@ -59,7 +59,7 @@ fn test_get_shipments_batch_rejects_requests_over_hard_limit() {
     }
 
     let result = client.try_get_shipments_batch(&ids);
-    assert!(matches!(result, Err(Ok(LumenError::BatchTooLarge))));
+    assert!(matches!(result, Err(Ok(OrbitHaulError::BatchTooLarge))));
 }
 
 #[test]
@@ -138,7 +138,7 @@ fn test_get_shipments_by_status_rejects_zero_limit() {
     client.initialize(&admin, &token_contract);
 
     let result = client.try_get_shipments_by_status(&ShipmentStatus::Created, &0);
-    assert!(matches!(result, Err(Ok(LumenError::InvalidConfig))));
+    assert!(matches!(result, Err(Ok(OrbitHaulError::InvalidConfig))));
 }
 
 // ── Batch vs. single-read consistency (issue #445) ───────────────────────────

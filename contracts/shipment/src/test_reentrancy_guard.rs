@@ -5,7 +5,7 @@ use soroban_sdk::{testutils::Address as _, Address, BytesN, Vec};
 
 fn setup_single_shipment() -> (
     soroban_sdk::Env,
-    crate::LumenShipmentClient<'static>,
+    crate::OrbitHaulShipmentClient<'static>,
     Address,
     Address,
     Address,

@@ -1968,7 +1968,7 @@ mod tests {
 
     fn with_contract_env() -> (Env, Address) {
         let (env, _) = test_utils::setup_env();
-        let contract_id = env.register(crate::LumenShipment, ());
+        let contract_id = env.register(crate::OrbitHaulShipment, ());
         (env, contract_id)
     }
 

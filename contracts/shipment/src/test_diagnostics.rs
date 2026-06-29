@@ -868,13 +868,13 @@ fn test_get_non_terminal_count_alignment() {
 /// ShipmentNotFound without panicking or crashing the node.
 #[test]
 fn test_get_shipment_creator_returns_not_found_for_nonexistent_id() {
-    use crate::LumenError;
+    use crate::OrbitHaulError;
     let (_, client, _, _) = prepare_test();
 
     let result = client.try_get_shipment_creator(&9999u64);
     assert_eq!(
         result,
-        Err(Ok(LumenError::ShipmentNotFound)),
+        Err(Ok(OrbitHaulError::ShipmentNotFound)),
         "get_shipment_creator must return ShipmentNotFound for an ID that was never created"
     );
 }
@@ -883,13 +883,13 @@ fn test_get_shipment_creator_returns_not_found_for_nonexistent_id() {
 /// must return ShipmentNotFound gracefully.
 #[test]
 fn test_get_shipment_creator_returns_not_found_for_zero_id() {
-    use crate::LumenError;
+    use crate::OrbitHaulError;
     let (_, client, _, _) = prepare_test();
 
     let result = client.try_get_shipment_creator(&0u64);
     assert_eq!(
         result,
-        Err(Ok(LumenError::ShipmentNotFound)),
+        Err(Ok(OrbitHaulError::ShipmentNotFound)),
         "get_shipment_creator must return ShipmentNotFound for ID 0"
     );
 }
@@ -898,13 +898,13 @@ fn test_get_shipment_creator_returns_not_found_for_zero_id() {
 /// ShipmentNotFound — no storage panic or key error.
 #[test]
 fn test_get_shipment_creator_returns_not_found_for_large_invalid_id() {
-    use crate::LumenError;
+    use crate::OrbitHaulError;
     let (_, client, _, _) = prepare_test();
 
     let result = client.try_get_shipment_creator(&u64::MAX);
     assert_eq!(
         result,
-        Err(Ok(LumenError::ShipmentNotFound)),
+        Err(Ok(OrbitHaulError::ShipmentNotFound)),
         "get_shipment_creator must return ShipmentNotFound for u64::MAX ID"
     );
 }

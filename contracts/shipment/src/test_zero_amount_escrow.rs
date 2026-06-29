@@ -3,7 +3,7 @@
 /// This module ensures that zero-amount and negative-amount escrow operations
 /// are rejected consistently across all escrow call paths, preventing silent
 /// acceptance of invalid amounts and maintaining bounded, predictable behavior.
-use crate::{LumenShipment, LumenShipmentClient, OrbitHaulError, ShipmentStatus};
+use crate::{OrbitHaulShipment, OrbitHaulShipmentClient, OrbitHaulError, ShipmentStatus};
 use soroban_sdk::{testutils::Address as _, Address, BytesN, Env, Vec};
 
 #[soroban_sdk::contract]
@@ -20,7 +20,7 @@ impl MockToken {
 
 fn setup_escrow_env() -> (
     Env,
-    LumenShipmentClient<'static>,
+    OrbitHaulShipmentClient<'static>,
     Address,
     Address,
     Address,
@@ -28,7 +28,7 @@ fn setup_escrow_env() -> (
 ) {
     let (env, admin) = crate::test_utils::setup_env();
     let token_contract = env.register(MockToken {}, ());
-    let client = LumenShipmentClient::new(&env, &env.register(LumenShipment, ()));
+    let client = OrbitHaulShipmentClient::new(&env, &env.register(OrbitHaulShipment, ()));
 
     let company = Address::generate(&env);
     let receiver = Address::generate(&env);

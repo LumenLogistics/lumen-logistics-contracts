@@ -641,7 +641,7 @@ fn test_get_dispute_evidence_hash_out_of_bounds() {
     let result_nonexistent = client.try_get_dispute_evidence_hash(&999u64, &0);
     assert_eq!(
         result_nonexistent,
-        Err(Ok(crate::LumenError::ShipmentNotFound)),
+        Err(Ok(crate::OrbitHaulError::ShipmentNotFound)),
         "querying dispute evidence on nonexistent shipment must return ShipmentNotFound"
     );
 
@@ -649,7 +649,7 @@ fn test_get_dispute_evidence_hash_out_of_bounds() {
     let result_empty = client.try_get_dispute_evidence_hash(&shipment_id, &0);
     assert_eq!(
         result_empty,
-        Err(Ok(crate::LumenError::EvidenceNotFound)),
+        Err(Ok(crate::OrbitHaulError::EvidenceNotFound)),
         "querying index 0 on empty evidence list must return EvidenceNotFound"
     );
 
@@ -677,7 +677,7 @@ fn test_get_dispute_evidence_hash_out_of_bounds() {
     let result_equal = client.try_get_dispute_evidence_hash(&shipment_id, &1);
     assert_eq!(
         result_equal,
-        Err(Ok(crate::LumenError::EvidenceNotFound)),
+        Err(Ok(crate::OrbitHaulError::EvidenceNotFound)),
         "querying index equal to evidence count must return EvidenceNotFound"
     );
 
@@ -685,7 +685,7 @@ fn test_get_dispute_evidence_hash_out_of_bounds() {
     let result_greater = client.try_get_dispute_evidence_hash(&shipment_id, &2);
     assert_eq!(
         result_greater,
-        Err(Ok(crate::LumenError::EvidenceNotFound)),
+        Err(Ok(crate::OrbitHaulError::EvidenceNotFound)),
         "querying index greater than evidence count must return EvidenceNotFound"
     );
 }

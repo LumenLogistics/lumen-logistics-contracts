@@ -212,7 +212,7 @@ fn test_checked_mul_div_truncates_remainder() {
 
 mod total_escrow_volume_overflow {
     use crate::errors::OrbitHaulError;
-    use crate::{storage, LumenShipment, LumenShipmentClient};
+    use crate::{storage, OrbitHaulShipment, OrbitHaulShipmentClient};
     use soroban_sdk::{contract, contractimpl, testutils::Address as _, Address, Env};
 
     #[contract]
@@ -226,11 +226,11 @@ mod total_escrow_volume_overflow {
         pub fn transfer(_env: Env, _from: Address, _to: Address, _amount: i128) {}
     }
 
-    fn setup() -> (Env, LumenShipmentClient<'static>, Address) {
+    fn setup() -> (Env, OrbitHaulShipmentClient<'static>, Address) {
         let (env, admin) = crate::test_utils::setup_env();
         let token = env.register(MockToken, ());
-        let cid = env.register(LumenShipment, ());
-        let client = LumenShipmentClient::new(&env, &cid);
+        let cid = env.register(OrbitHaulShipment, ());
+        let client = OrbitHaulShipmentClient::new(&env, &cid);
         client.initialize(&admin, &token);
         (env, client, admin)
     }

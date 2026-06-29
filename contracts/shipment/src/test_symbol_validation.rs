@@ -953,12 +953,12 @@ fn test_metadata_symbol_no_collision_similar_names_pass() {
 fn test_metadata_symbol_collision_via_set_shipment_metadata() {
     // End-to-end: calling set_shipment_metadata with key==value must return
     // MetadataSymbolCollision at the contract level.
-    use crate::{test_utils, LumenShipment, LumenShipmentClient};
+    use crate::{test_utils, OrbitHaulShipment, OrbitHaulShipmentClient};
     use soroban_sdk::{testutils::Address as _, Address, Vec as SorobanVec};
 
     let (env, admin) = test_utils::setup_env();
-    let contract_id = env.register(LumenShipment, ());
-    let client = LumenShipmentClient::new(&env, &contract_id);
+    let contract_id = env.register(OrbitHaulShipment, ());
+    let client = OrbitHaulShipmentClient::new(&env, &contract_id);
 
     let token = env.register_stellar_asset_contract_v2(admin.clone());
     client.initialize(&admin, &token.address());
@@ -1021,12 +1021,12 @@ fn test_validate_checkpoint_symbol_valid_passes() {
 
 #[test]
 fn test_record_milestone_empty_checkpoint_fails() {
-    use crate::{test_utils, LumenShipment, LumenShipmentClient, ShipmentStatus};
+    use crate::{test_utils, OrbitHaulShipment, OrbitHaulShipmentClient, ShipmentStatus};
     use soroban_sdk::{testutils::Address as _, Address, BytesN, Vec as SorobanVec};
 
     let (env, admin) = test_utils::setup_env();
-    let contract_id = env.register(LumenShipment, ());
-    let client = LumenShipmentClient::new(&env, &contract_id);
+    let contract_id = env.register(OrbitHaulShipment, ());
+    let client = OrbitHaulShipmentClient::new(&env, &contract_id);
 
     let token = env.register_stellar_asset_contract_v2(admin.clone());
     client.initialize(&admin, &token.address());

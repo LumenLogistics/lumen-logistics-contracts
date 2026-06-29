@@ -1,5 +1,5 @@
 use crate::{
-    test_utils, types::ShipmentInput, LumenShipment, LumenShipmentClient, OrbitHaulError,
+    test_utils, types::ShipmentInput, OrbitHaulShipment, OrbitHaulShipmentClient, OrbitHaulError,
     ShipmentStatus,
 };
 use soroban_sdk::{
@@ -50,10 +50,10 @@ mod mock_fail_rollback {
     }
 }
 
-fn setup_test() -> (Env, LumenShipmentClient<'static>, Address, Address) {
+fn setup_test() -> (Env, OrbitHaulShipmentClient<'static>, Address, Address) {
     let (env, admin) = test_utils::setup_env();
     let token_contract = env.register(MockToken {}, ());
-    let client = LumenShipmentClient::new(&env, &env.register(LumenShipment, ()));
+    let client = OrbitHaulShipmentClient::new(&env, &env.register(OrbitHaulShipment, ()));
     client.initialize(&admin, &token_contract);
     (env, client, admin, token_contract)
 }
@@ -206,10 +206,10 @@ fn test_record_milestones_batch_rollback() {
 
 // ── Token transfer failure recovery (issue #447) ─────────────────────────────
 
-fn setup_failing_token() -> (Env, LumenShipmentClient<'static>, Address, Address) {
+fn setup_failing_token() -> (Env, OrbitHaulShipmentClient<'static>, Address, Address) {
     let (env, admin) = test_utils::setup_env();
     let token_contract = env.register(mock_fail_rollback::FailingToken {}, ());
-    let client = LumenShipmentClient::new(&env, &env.register(LumenShipment, ()));
+    let client = OrbitHaulShipmentClient::new(&env, &env.register(OrbitHaulShipment, ()));
     client.initialize(&admin, &token_contract);
     (env, client, admin, token_contract)
 }

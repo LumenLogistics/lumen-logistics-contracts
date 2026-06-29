@@ -190,18 +190,18 @@ mod tests {
 
     #[test]
     fn list_rejects_invalid_page_size() {
-        use crate::LumenError;
+        use crate::OrbitHaulError;
         let (env, client, admin) = setup();
         let (company, _) = add_company_and_carrier(&env, &client, &admin);
         let candidates = Vec::new(&env);
 
         // page_size = 0
         let result = client.try_list_company_carriers(&company, &candidates, &0, &0);
-        assert_eq!(result, Err(Ok(LumenError::InvalidConfig)));
+        assert_eq!(result, Err(Ok(OrbitHaulError::InvalidConfig)));
 
         // page_size = 51
         let result = client.try_list_company_carriers(&company, &candidates, &0, &51);
-        assert_eq!(result, Err(Ok(LumenError::InvalidConfig)));
+        assert_eq!(result, Err(Ok(OrbitHaulError::InvalidConfig)));
     }
 
     #[test]

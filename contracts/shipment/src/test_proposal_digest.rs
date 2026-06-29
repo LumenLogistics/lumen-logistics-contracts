@@ -9,7 +9,7 @@
 
 #[cfg(test)]
 mod tests {
-    use crate::{test_utils, LumenShipment, LumenShipmentClient, OrbitHaulError};
+    use crate::{test_utils, OrbitHaulShipment, OrbitHaulShipmentClient, OrbitHaulError};
     use soroban_sdk::testutils::Ledger as _;
     use soroban_sdk::{contract, contractimpl, testutils::Address as _, Address, BytesN, Env, Vec};
 
@@ -23,10 +23,10 @@ mod tests {
         }
     }
 
-    fn setup_multisig() -> (Env, LumenShipmentClient<'static>, Address, Address) {
+    fn setup_multisig() -> (Env, OrbitHaulShipmentClient<'static>, Address, Address) {
         let (env, admin) = test_utils::setup_env();
-        let contract_id = env.register(LumenShipment, ());
-        let client = LumenShipmentClient::new(&env, &contract_id);
+        let contract_id = env.register(OrbitHaulShipment, ());
+        let client = OrbitHaulShipmentClient::new(&env, &contract_id);
         let token_id = env.register(MockToken, ());
         client.initialize(&admin, &token_id);
 

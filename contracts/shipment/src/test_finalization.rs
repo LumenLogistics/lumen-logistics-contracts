@@ -183,7 +183,7 @@ fn test_update_status_rejected_after_finalization() {
         &data_hash,
     );
     assert!(
-        matches!(result, Err(Ok(crate::LumenError::ShipmentFinalized))),
+        matches!(result, Err(Ok(crate::OrbitHaulError::ShipmentFinalized))),
         "update_status must be rejected with ShipmentFinalized after finalization"
     );
 }
@@ -196,7 +196,7 @@ fn test_deposit_escrow_rejected_after_finalization() {
 
     let result = client.try_deposit_escrow(&company, &shipment_id, &1000_i128);
     assert!(
-        matches!(result, Err(Ok(crate::LumenError::ShipmentFinalized))),
+        matches!(result, Err(Ok(crate::OrbitHaulError::ShipmentFinalized))),
         "deposit_escrow must be rejected with ShipmentFinalized after finalization"
     );
 }
@@ -209,7 +209,7 @@ fn test_raise_dispute_rejected_after_finalization() {
 
     let result = client.try_raise_dispute(&company, &shipment_id, &data_hash);
     assert!(
-        matches!(result, Err(Ok(crate::LumenError::ShipmentFinalized))),
+        matches!(result, Err(Ok(crate::OrbitHaulError::ShipmentFinalized))),
         "raise_dispute must be rejected with ShipmentFinalized after finalization"
     );
 }
@@ -223,7 +223,7 @@ fn test_cancel_shipment_rejected_after_finalization() {
     // Attempting to cancel an already-finalized shipment must be rejected.
     let result = client.try_cancel_shipment(&company, &shipment_id, &data_hash);
     assert!(
-        matches!(result, Err(Ok(crate::LumenError::ShipmentFinalized))),
+        matches!(result, Err(Ok(crate::OrbitHaulError::ShipmentFinalized))),
         "cancel_shipment must be rejected with ShipmentFinalized on already-finalized shipment"
     );
 }
@@ -241,7 +241,7 @@ fn test_set_metadata_rejected_after_finalization() {
         &Symbol::new(&env, "val"),
     );
     assert!(
-        matches!(result, Err(Ok(crate::LumenError::ShipmentFinalized))),
+        matches!(result, Err(Ok(crate::OrbitHaulError::ShipmentFinalized))),
         "set_shipment_metadata must be rejected after finalization"
     );
 }
@@ -263,21 +263,21 @@ fn test_lockout_is_stable_across_reruns() {
                     &ShipmentStatus::InTransit,
                     &data_hash
                 ),
-                Err(Ok(crate::LumenError::ShipmentFinalized))
+                Err(Ok(crate::OrbitHaulError::ShipmentFinalized))
             ),
             "update_status lockout must be stable"
         );
         assert!(
             matches!(
                 client.try_deposit_escrow(&company, &shipment_id, &500_i128),
-                Err(Ok(crate::LumenError::ShipmentFinalized))
+                Err(Ok(crate::OrbitHaulError::ShipmentFinalized))
             ),
             "deposit_escrow lockout must be stable"
         );
         assert!(
             matches!(
                 client.try_raise_dispute(&company, &shipment_id, &data_hash),
-                Err(Ok(crate::LumenError::ShipmentFinalized))
+                Err(Ok(crate::OrbitHaulError::ShipmentFinalized))
             ),
             "raise_dispute lockout must be stable"
         );

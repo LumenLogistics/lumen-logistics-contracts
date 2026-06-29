@@ -784,7 +784,7 @@ fn test_auth_add_operator_fails_without_auth() {
 //
 // These tests verify that when a caller has valid authentication (mock_all_auths
 // is active so require_auth passes) but lacks the required role, the contract
-// maps the failure to the correct LumenError variant with the expected category
+// maps the failure to the correct OrbitHaulError variant with the expected category
 // and retry guidance.
 
 /// A company caller must not be able to call `add_company` — that is an
@@ -850,9 +850,9 @@ fn test_wrong_role_suspend_company_returns_error() {
 #[test]
 fn test_wrong_role_error_maps_to_unauthorized_category() {
     use crate::error_map::{error_info, ErrorCategory, RetryGuidance};
-    use crate::LumenError;
+    use crate::OrbitHaulError;
 
-    let info = error_info(LumenError::Unauthorized);
+    let info = error_info(OrbitHaulError::Unauthorized);
     assert_eq!(
         info.category,
         ErrorCategory::Unauthorized,
@@ -881,7 +881,7 @@ fn test_wrong_role_error_maps_to_unauthorized_category() {
 // where company/carrier actors supply arbitrary Symbol keys and values.
 
 /// An empty Symbol (0 characters, XDR = 8 bytes) must be rejected with
-/// `LumenError::InvalidSymbol` by the whitespace-rejection helper.
+/// `OrbitHaulError::InvalidSymbol` by the whitespace-rejection helper.
 #[test]
 fn test_whitespace_only_symbol_empty_returns_invalid_symbol() {
     let (env, client, _admin, _token) = setup_env();
@@ -894,7 +894,7 @@ fn test_whitespace_only_symbol_empty_returns_invalid_symbol() {
 
     assert_eq!(
         result,
-        Err(crate::LumenError::InvalidSymbol),
+        Err(crate::OrbitHaulError::InvalidSymbol),
         "empty Symbol must be rejected as whitespace-only"
     );
 }
@@ -929,7 +929,7 @@ fn test_oversized_symbol_rejected_by_whitespace_helper() {
 
     assert_eq!(
         result,
-        Err(crate::LumenError::InvalidSymbol),
+        Err(crate::OrbitHaulError::InvalidSymbol),
         "oversized Symbol must be rejected by the whitespace helper"
     );
 }
@@ -966,7 +966,7 @@ fn test_set_shipment_metadata_rejects_empty_key_symbol() {
 
     assert_eq!(
         result,
-        Err(Ok(crate::LumenError::InvalidSymbol)),
+        Err(Ok(crate::OrbitHaulError::InvalidSymbol)),
         "set_shipment_metadata with an empty key Symbol must return InvalidSymbol"
     );
 }
@@ -1002,7 +1002,7 @@ fn test_set_shipment_metadata_rejects_empty_value_symbol() {
 
     assert_eq!(
         result,
-        Err(Ok(crate::LumenError::InvalidSymbol)),
+        Err(Ok(crate::OrbitHaulError::InvalidSymbol)),
         "set_shipment_metadata with an empty value Symbol must return InvalidSymbol"
     );
 }

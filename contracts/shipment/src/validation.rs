@@ -1,4 +1,4 @@
-use crate::errors::LumenError;
+use crate::errors::OrbitHaulError;
 use crate::storage;
 use crate::types::{Shipment, ShipmentStatus};
 use soroban_sdk::{xdr::ToXdr, BytesN, Env, Symbol};
@@ -25,17 +25,17 @@ const MAX_FUTURE_OFFSET: u64 = 10 * 365 * 24 * 60 * 60;
 ///
 /// # Returns
 /// * `Ok(())` if the hash contains at least one non-zero byte.
-/// * `Err(LumenError::InvalidHash)` if every byte is zero.
+/// * `Err(OrbitHaulError::InvalidHash)` if every byte is zero.
 ///
 /// # Examples
 /// ```rust
 /// validate_hash(&hash)?;
 /// ```
-pub fn validate_hash(hash: &BytesN<32>) -> Result<(), LumenError> {
+pub fn validate_hash(hash: &BytesN<32>) -> Result<(), OrbitHaulError> {
     // BytesN::iter() is not available in no_std soroban; use to_array().
     let bytes: [u8; 32] = hash.to_array();
     if bytes.iter().all(|&b| b == 0) {
-        return Err(LumenError::InvalidHash);
+        return Err(OrbitHaulError::InvalidHash);
     }
     Ok(())
 }
@@ -59,13 +59,13 @@ pub fn validate_hash(hash: &BytesN<32>) -> Result<(), LumenError> {
 ///
 /// # Returns
 /// * `Ok(())` if the symbol is valid.
-/// * `Err(LumenError::InvalidShipmentInput)` if the symbol is empty or exceeds max length.
+/// * `Err(OrbitHaulError::InvalidShipmentInput)` if the symbol is empty or exceeds max length.
 ///
 /// # Examples
 /// ```rust
 /// validate_symbol(&env, &Symbol::new(&env, "warehouse"))?;
 /// ```
-pub fn validate_symbol(env: &Env, symbol: &Symbol) -> Result<(), LumenError> {
+pub fn validate_symbol(env: &Env, symbol: &Symbol) -> Result<(), OrbitHaulError> {
     // XDR layout: 4-byte ScValType tag + 4-byte length field + content padded to 4-byte boundary.
     // Byte counts by character count:
     //   0 chars  →  8 bytes  (empty — rejected)
@@ -77,23 +77,23 @@ pub fn validate_symbol(env: &Env, symbol: &Symbol) -> Result<(), LumenError> {
     let len = symbol_bytes.len();
 
     if !(12..=20).contains(&len) {
-        return Err(LumenError::InvalidShipmentInput);
+        return Err(OrbitHaulError::InvalidShipmentInput);
     }
 
     Ok(())
 }
 
 /// Validate a milestone checkpoint symbol for bounded usage and non-emptiness.
-pub fn validate_checkpoint_symbol(env: &Env, symbol: &Symbol) -> Result<(), LumenError> {
+pub fn validate_checkpoint_symbol(env: &Env, symbol: &Symbol) -> Result<(), OrbitHaulError> {
     let symbol_bytes = symbol.to_xdr(env);
     let len = symbol_bytes.len();
 
     if len <= 8 {
-        return Err(LumenError::InvalidSymbol);
+        return Err(OrbitHaulError::InvalidSymbol);
     }
 
     if !(12..=20).contains(&len) {
-        return Err(LumenError::InvalidSymbol);
+        return Err(OrbitHaulError::InvalidSymbol);
     }
 
     Ok(())
@@ -110,7 +110,7 @@ pub fn validate_checkpoint_symbol(env: &Env, symbol: &Symbol) -> Result<(), Lume
 ///
 /// # Returns
 /// * `Ok(())` if all symbols are valid and unique.
-/// * `Err(LumenError::InvalidShipmentInput)` if any symbol is invalid or duplicated.
+/// * `Err(OrbitHaulError::InvalidShipmentInput)` if any symbol is invalid or duplicated.
 ///
 /// # Examples
 /// ```rust
@@ -119,12 +119,12 @@ pub fn validate_checkpoint_symbol(env: &Env, symbol: &Symbol) -> Result<(), Lume
 pub fn validate_milestone_symbols(
     env: &Env,
     milestones: &soroban_sdk::Vec<(Symbol, u32)>,
-) -> Result<(), LumenError> {
+) -> Result<(), OrbitHaulError> {
     // Check each milestone symbol for validity
     for milestone in milestones.iter() {
         validate_symbol(env, &milestone.0)?;
         if milestone.1 == 0 {
-            return Err(LumenError::InvalidConfig);
+            return Err(OrbitHaulError::InvalidConfig);
         }
     }
 
@@ -136,7 +136,7 @@ pub fn validate_milestone_symbols(
             let other = &milestones.get_unchecked(j).0;
             let other_xdr = other.to_xdr(env);
             if current_xdr == other_xdr {
-                return Err(LumenError::DuplicatePaymentMilestone);
+                return Err(OrbitHaulError::DuplicatePaymentMilestone);
             }
         }
     }
@@ -156,7 +156,7 @@ pub fn validate_milestone_symbols(
 ///
 /// # Returns
 /// * `Ok(())` if both symbols are valid.
-/// * `Err(LumenError::InvalidShipmentInput)` if either symbol is invalid.
+/// * `Err(OrbitHaulError::InvalidShipmentInput)` if either symbol is invalid.
 ///
 /// # Examples
 /// ```rust
@@ -166,7 +166,7 @@ pub fn validate_metadata_symbols(
     env: &Env,
     key: &Symbol,
     value: &Symbol,
-) -> Result<(), LumenError> {
+) -> Result<(), OrbitHaulError> {
     validate_symbol(env, key)?;
     validate_symbol(env, value)?;
     // Reject key == value: a self-referential entry is always a caller mistake
@@ -174,7 +174,7 @@ pub fn validate_metadata_symbols(
     // XDR representation (e.g., Symbol::new(&env, "weight") used as both key
     // and value).
     if key.to_xdr(env) == value.to_xdr(env) {
-        return Err(LumenError::MetadataSymbolCollision);
+        return Err(OrbitHaulError::MetadataSymbolCollision);
     }
     Ok(())
 }
@@ -186,15 +186,15 @@ pub fn validate_metadata_symbols(
 ///
 /// # Returns
 /// * `Ok(())` if `0 < amount <= MAX_AMOUNT`.
-/// * `Err(LumenError::InvalidAmount)` otherwise.
+/// * `Err(OrbitHaulError::InvalidAmount)` otherwise.
 ///
 /// # Examples
 /// ```rust
 /// validate_amount(5_000_000)?;
 /// ```
-pub fn validate_amount(amount: i128) -> Result<(), LumenError> {
+pub fn validate_amount(amount: i128) -> Result<(), OrbitHaulError> {
     if amount <= 0 || amount > MAX_AMOUNT {
-        return Err(LumenError::InvalidAmount);
+        return Err(OrbitHaulError::InvalidAmount);
     }
     Ok(())
 }
@@ -206,13 +206,13 @@ pub fn validate_amount(amount: i128) -> Result<(), LumenError> {
 ///
 /// # Returns
 /// * `Ok(())` if `amount > 0`.
-/// * `Err(LumenError::InvalidAmount)` otherwise.
-pub fn validate_positive_amount(amount: i128) -> Result<(), LumenError> {
+/// * `Err(OrbitHaulError::InvalidAmount)` otherwise.
+pub fn validate_positive_amount(amount: i128) -> Result<(), OrbitHaulError> {
     if amount <= 0 {
-        return Err(LumenError::InsufficientFunds);
+        return Err(OrbitHaulError::InsufficientFunds);
     }
     if amount > MAX_AMOUNT {
-        return Err(LumenError::InvalidAmount);
+        return Err(OrbitHaulError::InvalidAmount);
     }
     Ok(())
 }
@@ -226,19 +226,19 @@ pub fn validate_positive_amount(amount: i128) -> Result<(), LumenError> {
 ///
 /// # Returns
 /// * `Ok(())` if the timestamp is within acceptable bounds.
-/// * `Err(LumenError::InvalidTimestamp)` otherwise.
+/// * `Err(OrbitHaulError::InvalidTimestamp)` otherwise.
 ///
 /// # Examples
 /// ```rust
 /// validate_timestamp(&env, some_ts)?;
 /// ```
-pub fn validate_timestamp(env: &Env, timestamp: u64) -> Result<(), LumenError> {
+pub fn validate_timestamp(env: &Env, timestamp: u64) -> Result<(), OrbitHaulError> {
     let now = env.ledger().timestamp();
     let earliest = now.saturating_sub(MAX_PAST_OFFSET);
     let latest = now.saturating_add(MAX_FUTURE_OFFSET);
 
     if timestamp < earliest || timestamp > latest {
-        return Err(LumenError::InvalidTimestamp);
+        return Err(OrbitHaulError::InvalidTimestamp);
     }
     Ok(())
 }
@@ -251,14 +251,14 @@ pub fn validate_timestamp(env: &Env, timestamp: u64) -> Result<(), LumenError> {
 ///
 /// # Returns
 /// * `Ok(Shipment)` if the shipment exists in persistent storage.
-/// * `Err(LumenError::ShipmentNotFound)` if no shipment is stored under `id`.
+/// * `Err(OrbitHaulError::ShipmentNotFound)` if no shipment is stored under `id`.
 ///
 /// # Examples
 /// ```rust
 /// let shipment = validate_shipment_exists(&env, shipment_id)?;
 /// ```
-pub fn validate_shipment_exists(env: &Env, id: u64) -> Result<Shipment, LumenError> {
-    storage::get_shipment(env, id).ok_or(LumenError::ShipmentNotFound)
+pub fn validate_shipment_exists(env: &Env, id: u64) -> Result<Shipment, OrbitHaulError> {
+    storage::get_shipment(env, id).ok_or(OrbitHaulError::ShipmentNotFound)
 }
 
 /// Preflight check for state-changing operations: ensures the shipment exists
@@ -280,9 +280,9 @@ pub fn validate_shipment_exists(env: &Env, id: u64) -> Result<Shipment, LumenErr
 ///
 /// # Returns
 /// * `Ok(Shipment)` - The shipment if available for mutation.
-/// * `Err(LumenError::ShipmentNotFound)` - If shipment doesn't exist in persistent storage.
-/// * `Err(LumenError::ShipmentUnavailable)` - If shipment is archived or expired.
-/// * `Err(LumenError::ShipmentFinalized)` - If shipment is finalized and locked.
+/// * `Err(OrbitHaulError::ShipmentNotFound)` - If shipment doesn't exist in persistent storage.
+/// * `Err(OrbitHaulError::ShipmentUnavailable)` - If shipment is archived or expired.
+/// * `Err(OrbitHaulError::ShipmentFinalized)` - If shipment is finalized and locked.
 ///
 /// # Design Rationale
 ///
@@ -306,18 +306,18 @@ pub fn validate_shipment_exists(env: &Env, id: u64) -> Result<Shipment, LumenErr
 pub fn preflight_check_shipment_available(
     env: &Env,
     shipment_id: u64,
-) -> Result<Shipment, LumenError> {
+) -> Result<Shipment, OrbitHaulError> {
     // Check if shipment exists in persistent storage
     let shipment: Option<Shipment> = env
         .storage()
         .persistent()
         .get(&crate::types::DataKey::Shipment(shipment_id));
 
-    let shipment = shipment.ok_or(LumenError::ShipmentNotFound)?;
+    let shipment = shipment.ok_or(OrbitHaulError::ShipmentNotFound)?;
 
     // Check if shipment is finalized (locked)
     if shipment.finalized {
-        return Err(LumenError::ShipmentFinalized);
+        return Err(OrbitHaulError::ShipmentFinalized);
     }
 
     Ok(shipment)
@@ -361,29 +361,29 @@ pub fn compute_offchain_payload_hash(
 ///
 /// This validator protects against impossible state combinations and is intended
 /// to be called on every write path before persisting shipment state.
-pub fn validate_shipment_invariants(shipment: &Shipment) -> Result<(), LumenError> {
+pub fn validate_shipment_invariants(shipment: &Shipment) -> Result<(), OrbitHaulError> {
     if shipment.total_escrow < 0 || shipment.escrow_amount < 0 {
-        return Err(LumenError::InvalidStatus);
+        return Err(OrbitHaulError::InvalidStatus);
     }
 
     if shipment.escrow_amount > shipment.total_escrow {
-        return Err(LumenError::InvalidStatus);
+        return Err(OrbitHaulError::InvalidStatus);
     }
 
     if shipment.finalized {
         let terminal = shipment.status == ShipmentStatus::Delivered
             || shipment.status == ShipmentStatus::Cancelled;
         if !terminal || shipment.escrow_amount != 0 {
-            return Err(LumenError::InvalidStatus);
+            return Err(OrbitHaulError::InvalidStatus);
         }
     }
 
     if shipment.status == ShipmentStatus::Disputed && shipment.finalized {
-        return Err(LumenError::InvalidStatus);
+        return Err(OrbitHaulError::InvalidStatus);
     }
 
     if shipment.status == ShipmentStatus::Created && !shipment.paid_milestones.is_empty() {
-        return Err(LumenError::InvalidStatus);
+        return Err(OrbitHaulError::InvalidStatus);
     }
 
     Ok(())
@@ -402,7 +402,7 @@ mod tests {
     fn test_validate_hash_all_zeros_fails() {
         let env = Env::default();
         let zero_hash: BytesN<32> = BytesN::from_array(&env, &[0u8; 32]);
-        assert_eq!(validate_hash(&zero_hash), Err(LumenError::InvalidHash));
+        assert_eq!(validate_hash(&zero_hash), Err(OrbitHaulError::InvalidHash));
     }
 
     #[test]
@@ -472,19 +472,19 @@ mod tests {
 
         assert_eq!(
             validate_shipment_invariants(&shipment),
-            Err(LumenError::InvalidStatus)
+            Err(OrbitHaulError::InvalidStatus)
         );
     }
 
     // validate_amount
     #[test]
     fn test_validate_amount_zero_fails() {
-        assert_eq!(validate_amount(0), Err(LumenError::InvalidAmount));
+        assert_eq!(validate_amount(0), Err(OrbitHaulError::InvalidAmount));
     }
 
     #[test]
     fn test_validate_amount_negative_fails() {
-        assert_eq!(validate_amount(-1), Err(LumenError::InvalidAmount));
+        assert_eq!(validate_amount(-1), Err(OrbitHaulError::InvalidAmount));
     }
 
     #[test]
@@ -498,7 +498,7 @@ mod tests {
     fn test_validate_amount_exceeds_max_fails() {
         assert_eq!(
             validate_amount(MAX_AMOUNT + 1),
-            Err(LumenError::InvalidAmount)
+            Err(OrbitHaulError::InvalidAmount)
         );
     }
 
@@ -525,7 +525,7 @@ mod tests {
         let far_future = now + MAX_FUTURE_OFFSET + 1;
         assert_eq!(
             validate_timestamp(&env, far_future),
-            Err(LumenError::InvalidTimestamp)
+            Err(OrbitHaulError::InvalidTimestamp)
         );
     }
 
@@ -540,7 +540,7 @@ mod tests {
         let far_past = env.ledger().timestamp() - MAX_PAST_OFFSET - 1;
         assert_eq!(
             validate_timestamp(&env, far_past),
-            Err(LumenError::InvalidTimestamp)
+            Err(OrbitHaulError::InvalidTimestamp)
         );
     }
 
@@ -552,7 +552,7 @@ mod tests {
         let result = env.as_contract(&env.register(crate::LumenShipment, ()), || {
             validate_shipment_exists(&env, 999)
         });
-        assert!(matches!(result, Err(LumenError::ShipmentNotFound)));
+        assert!(matches!(result, Err(OrbitHaulError::ShipmentNotFound)));
     }
 
     // validate_symbol
@@ -628,7 +628,7 @@ mod tests {
         milestones.push_back((Symbol::new(&env, "warehouse"), 50_u32));
         assert_eq!(
             validate_milestone_symbols(&env, &milestones),
-            Err(LumenError::DuplicatePaymentMilestone)
+            Err(OrbitHaulError::DuplicatePaymentMilestone)
         );
     }
 
@@ -807,7 +807,7 @@ mod symbol_validation_tests {
         let result = validate_milestone_symbols(&env, &milestones);
         assert_eq!(
             result,
-            Err(LumenError::DuplicatePaymentMilestone),
+            Err(OrbitHaulError::DuplicatePaymentMilestone),
             "Duplicate milestone symbols should be rejected"
         );
     }
@@ -882,7 +882,7 @@ mod symbol_validation_tests {
         let result = validate_symbol(&env, &oversized_symbol);
         assert_eq!(
             result,
-            Err(LumenError::InvalidShipmentInput),
+            Err(OrbitHaulError::InvalidShipmentInput),
             "Oversized symbol must return InvalidShipmentInput"
         );
     }
@@ -910,7 +910,7 @@ mod symbol_validation_tests {
         let value = Symbol::new(&env, &long);
         assert_eq!(
             validate_metadata_symbols(&env, &key, &value),
-            Err(LumenError::InvalidShipmentInput),
+            Err(OrbitHaulError::InvalidShipmentInput),
             "13-char metadata value must be rejected"
         );
     }
@@ -935,7 +935,7 @@ mod symbol_validation_tests {
         let value = Symbol::new(&env, "ok");
         assert_eq!(
             validate_metadata_symbols(&env, &key, &value),
-            Err(LumenError::InvalidShipmentInput),
+            Err(OrbitHaulError::InvalidShipmentInput),
             "13-char metadata key must be rejected"
         );
     }
@@ -962,7 +962,7 @@ mod symbol_validation_tests {
             let s: std::string::String = "A".repeat(len);
             assert_eq!(
                 validate_metadata_symbols(&env, &key, &Symbol::new(&env, &s)),
-                Err(LumenError::InvalidShipmentInput),
+                Err(OrbitHaulError::InvalidShipmentInput),
                 "metadata value of length {len} must be rejected"
             );
         }
@@ -980,7 +980,7 @@ mod symbol_validation_tests {
 
         assert_eq!(
             result,
-            Err(LumenError::DuplicatePaymentMilestone),
+            Err(OrbitHaulError::DuplicatePaymentMilestone),
             "Duplicate milestone should return DuplicatePaymentMilestone"
         );
     }

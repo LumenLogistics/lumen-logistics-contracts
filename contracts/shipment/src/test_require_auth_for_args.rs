@@ -6,7 +6,7 @@
 
 extern crate std;
 
-use crate::{LumenShipment, LumenShipmentClient};
+use crate::{OrbitHaulShipment, OrbitHaulShipmentClient};
 use soroban_sdk::{
     contract, contractimpl,
     testutils::{Address as _, AuthorizedFunction, Ledger as _},
@@ -34,16 +34,16 @@ impl MockToken {
 // Test Setup Helpers
 // ─────────────────────────────────────────────────────────────────────────────
 
-fn setup_env() -> (Env, LumenShipmentClient<'static>, Address, Address) {
+fn setup_env() -> (Env, OrbitHaulShipmentClient<'static>, Address, Address) {
     let (env, admin) = crate::test_utils::setup_env();
     let token_contract = env.register(MockToken {}, ());
-    let contract_id = env.register(LumenShipment, ());
-    let client = LumenShipmentClient::new(&env, &contract_id);
+    let contract_id = env.register(OrbitHaulShipment, ());
+    let client = OrbitHaulShipmentClient::new(&env, &contract_id);
     client.initialize(&admin, &token_contract);
     (env, client, admin, token_contract)
 }
 
-fn contract_id(client: &LumenShipmentClient<'static>) -> Address {
+fn contract_id(client: &OrbitHaulShipmentClient<'static>) -> Address {
     client.address.clone()
 }
 
@@ -109,8 +109,8 @@ fn test_add_company_mismatched_args_fails() {
     let company1 = Address::generate(&env);
     let company2 = Address::generate(&env);
     let token = env.register(MockToken {}, ());
-    let contract_id = env.register(LumenShipment, ());
-    let client = LumenShipmentClient::new(&env, &contract_id);
+    let contract_id = env.register(OrbitHaulShipment, ());
+    let client = OrbitHaulShipmentClient::new(&env, &contract_id);
 
     // Mock auth for (admin, company1) only
     env.mock_all_auths();

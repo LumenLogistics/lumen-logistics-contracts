@@ -3,7 +3,7 @@
 extern crate std;
 
 use crate::{
-    types::DataKey, BreachType, GeofenceEvent, LumenShipment, LumenShipmentClient, OrbitHaulError,
+    types::DataKey, BreachType, GeofenceEvent, OrbitHaulShipment, OrbitHaulShipmentClient, OrbitHaulError,
     PersistentRestoreDiagnostics, Severity, ShipmentInput, ShipmentStatus, StoragePresenceState,
 };
 use soroban_sdk::{
@@ -96,19 +96,19 @@ mod invalid_token_high_decimals {
     }
 }
 
-pub fn setup_shipment_env() -> (Env, LumenShipmentClient<'static>, Address, Address) {
+pub fn setup_shipment_env() -> (Env, OrbitHaulShipmentClient<'static>, Address, Address) {
     let (env, admin) = super::test_utils::setup_env();
     let token_contract = env.register(MockToken {}, ());
-    let client = LumenShipmentClient::new(&env, &env.register(LumenShipment, ()));
+    let client = OrbitHaulShipmentClient::new(&env, &env.register(OrbitHaulShipment, ()));
 
     (env, client, admin, token_contract)
 }
 
 pub fn setup_shipment_env_with_failing_token(
-) -> (Env, LumenShipmentClient<'static>, Address, Address) {
+) -> (Env, OrbitHaulShipmentClient<'static>, Address, Address) {
     let (env, admin) = super::test_utils::setup_env();
     let token_contract = env.register(failing_token::FailingMockToken {}, ());
-    let client = LumenShipmentClient::new(&env, &env.register(LumenShipment, ()));
+    let client = OrbitHaulShipmentClient::new(&env, &env.register(OrbitHaulShipment, ()));
 
     (env, client, admin, token_contract)
 }
@@ -116,10 +116,10 @@ pub fn setup_shipment_env_with_failing_token(
 /// Creates a fully-initialized shipment environment ready for use.
 /// Calls `initialize` on the client so tests can call contract methods
 /// directly without an extra initialization step.
-pub fn setup_initialized_shipment_env() -> (Env, LumenShipmentClient<'static>, Address, Address) {
+pub fn setup_initialized_shipment_env() -> (Env, OrbitHaulShipmentClient<'static>, Address, Address) {
     let (env, admin) = super::test_utils::setup_env();
     let token_contract = env.register(MockToken {}, ());
-    let client = LumenShipmentClient::new(&env, &env.register(LumenShipment, ()));
+    let client = OrbitHaulShipmentClient::new(&env, &env.register(OrbitHaulShipment, ()));
     client.initialize(&admin, &token_contract);
     (env, client, admin, token_contract)
 }
@@ -127,10 +127,10 @@ pub fn setup_initialized_shipment_env() -> (Env, LumenShipmentClient<'static>, A
 /// Like `setup_initialized_shipment_env` but uses a token that always
 /// fails transfers — useful for testing rollback / failure paths.
 pub fn setup_initialized_shipment_env_with_failing_token(
-) -> (Env, LumenShipmentClient<'static>, Address, Address) {
+) -> (Env, OrbitHaulShipmentClient<'static>, Address, Address) {
     let (env, admin) = super::test_utils::setup_env();
     let token_contract = env.register(failing_token::FailingMockToken {}, ());
-    let client = LumenShipmentClient::new(&env, &env.register(LumenShipment, ()));
+    let client = OrbitHaulShipmentClient::new(&env, &env.register(OrbitHaulShipment, ()));
     client.initialize(&admin, &token_contract);
     (env, client, admin, token_contract)
 }
@@ -191,7 +191,7 @@ fn test_admin_is_stored_correctly() {
 #[test]
 fn test_scaffold() {
     let env = Env::default();
-    let _client = LumenShipmentClient::new(&env, &env.register(LumenShipment, ()));
+    let _client = OrbitHaulShipmentClient::new(&env, &env.register(OrbitHaulShipment, ()));
 }
 
 #[test]
@@ -1540,7 +1540,7 @@ fn test_update_eta_unauthorized() {
 
 fn setup_shipment_with_status(
     env: &Env,
-    client: &LumenShipmentClient,
+    client: &OrbitHaulShipmentClient,
     admin: &Address,
     token_contract: &Address,
     status: crate::ShipmentStatus,
@@ -9607,7 +9607,7 @@ fn test_get_shipment_reference_collision_free() {
 /// deadline. Returns the shipment ID.
 fn setup_shipment_with_deadline(
     env: &Env,
-    client: &LumenShipmentClient,
+    client: &OrbitHaulShipmentClient,
     admin: &Address,
     token_contract: &Address,
     deadline: u64,
@@ -9747,7 +9747,7 @@ fn test_update_config_rejects_grace_period_exceeding_max() {
 /// return (env, client, admin, token_contract, company, shipment_id).
 fn setup_force_cancel_env() -> (
     Env,
-    LumenShipmentClient<'static>,
+    OrbitHaulShipmentClient<'static>,
     Address,
     Address,
     Address,
@@ -10920,7 +10920,7 @@ fn test_report_condition_breach_limit_exceeded() {
 fn test_deposit_escrow_invalid_token_decimals() {
     let (env, admin) = super::test_utils::setup_env();
     let token_contract = env.register(invalid_token::MockTokenInvalidDecimals {}, ());
-    let client = LumenShipmentClient::new(&env, &env.register(LumenShipment, ()));
+    let client = OrbitHaulShipmentClient::new(&env, &env.register(OrbitHaulShipment, ()));
 
     client.initialize(&admin, &token_contract);
 
@@ -10963,7 +10963,7 @@ fn test_get_expected_token_decimals_policy() {
 fn test_deposit_escrow_invalid_token_high_decimals() {
     let (env, admin) = super::test_utils::setup_env();
     let token_contract = env.register(invalid_token_high_decimals::MockTokenHighDecimals {}, ());
-    let client = LumenShipmentClient::new(&env, &env.register(LumenShipment, ()));
+    let client = OrbitHaulShipmentClient::new(&env, &env.register(OrbitHaulShipment, ()));
 
     client.initialize(&admin, &token_contract);
 

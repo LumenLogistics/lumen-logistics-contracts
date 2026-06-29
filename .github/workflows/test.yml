@@ -1,4 +1,4 @@
-name: Lumen Logistics Smart Contracts CI
+name: OrbitHaul Smart Contracts CI
 
 on:
   push:

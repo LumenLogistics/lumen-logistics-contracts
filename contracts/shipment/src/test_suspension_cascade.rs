@@ -12,7 +12,7 @@
 
 #[cfg(test)]
 mod tests {
-    use crate::{test_utils, LumenShipment, LumenShipmentClient, ShipmentStatus};
+    use crate::{test_utils, OrbitHaulShipment, OrbitHaulShipmentClient, ShipmentStatus};
     use soroban_sdk::{contract, contractimpl, testutils::Address as _, Address, BytesN, Env, Vec};
 
     #[contract]
@@ -26,10 +26,10 @@ mod tests {
         }
     }
 
-    fn setup() -> (Env, LumenShipmentClient<'static>, Address) {
+    fn setup() -> (Env, OrbitHaulShipmentClient<'static>, Address) {
         let (env, admin) = test_utils::setup_env();
-        let contract_id = env.register(LumenShipment, ());
-        let client = LumenShipmentClient::new(&env, &contract_id);
+        let contract_id = env.register(OrbitHaulShipment, ());
+        let client = OrbitHaulShipmentClient::new(&env, &contract_id);
         let token_id = env.register(MockToken, ());
         client.initialize(&admin, &token_id);
         (env, client, admin)
@@ -39,7 +39,7 @@ mod tests {
     /// Returns (company, receiver, carrier, shipment_id, data_hash).
     fn create_in_transit_shipment(
         env: &Env,
-        client: &LumenShipmentClient<'static>,
+        client: &OrbitHaulShipmentClient<'static>,
         admin: &Address,
     ) -> (Address, Address, Address, u64, BytesN<32>) {
         let company = Address::generate(env);

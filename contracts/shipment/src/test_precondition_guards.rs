@@ -8,7 +8,7 @@
 
 #[cfg(test)]
 mod tests {
-    use crate::{test_utils, LumenError, LumenShipment, LumenShipmentClient, ShipmentStatus};
+    use crate::{test_utils, OrbitHaulError, LumenShipment, LumenShipmentClient, ShipmentStatus};
     use soroban_sdk::{contract, contractimpl, testutils::Address as _, Address, BytesN, Env, Vec};
 
     #[contract]
@@ -58,7 +58,7 @@ mod tests {
 
         // Any method that calls require_initialized should return NotInitialized.
         let result = client.try_get_admin();
-        assert_eq!(result, Err(Ok(LumenError::NotInitialized)));
+        assert_eq!(result, Err(Ok(OrbitHaulError::NotInitialized)));
     }
 
     // ── require_not_paused ───────────────────────────────────────────────────
@@ -80,7 +80,7 @@ mod tests {
             &Vec::new(&env),
             &deadline,
         );
-        assert_eq!(result, Err(Ok(LumenError::ContractPaused)));
+        assert_eq!(result, Err(Ok(OrbitHaulError::ContractPaused)));
     }
 
     // ── require_admin ────────────────────────────────────────────────────────
@@ -91,7 +91,7 @@ mod tests {
 
         // set_shipment_limit uses require_admin internally.
         let result = client.try_set_shipment_limit(&company, &10);
-        assert_eq!(result, Err(Ok(LumenError::Unauthorized)));
+        assert_eq!(result, Err(Ok(OrbitHaulError::Unauthorized)));
     }
 
     #[test]
@@ -116,7 +116,7 @@ mod tests {
             &Vec::new(&env),
             &deadline,
         );
-        assert_eq!(result, Err(Ok(LumenError::Unauthorized)));
+        assert_eq!(result, Err(Ok(OrbitHaulError::Unauthorized)));
     }
 
     // ── require_role (Carrier) ───────────────────────────────────────────────
@@ -139,7 +139,7 @@ mod tests {
         let hash2 = make_hash(&env, 4);
         // company is not the carrier — should be Unauthorized.
         let result = client.try_update_status(&company, &id, &ShipmentStatus::InTransit, &hash2);
-        assert_eq!(result, Err(Ok(LumenError::Unauthorized)));
+        assert_eq!(result, Err(Ok(OrbitHaulError::Unauthorized)));
     }
 
     // ── require_active_company ───────────────────────────────────────────────
@@ -160,7 +160,7 @@ mod tests {
             &Vec::new(&env),
             &deadline,
         );
-        assert_eq!(result, Err(Ok(LumenError::CompanySuspended)));
+        assert_eq!(result, Err(Ok(OrbitHaulError::CompanySuspended)));
     }
 
     // ── require_active_carrier ───────────────────────────────────────────────
@@ -184,7 +184,7 @@ mod tests {
 
         let hash2 = make_hash(&env, 7);
         let result = client.try_update_status(&carrier, &id, &ShipmentStatus::InTransit, &hash2);
-        assert_eq!(result, Err(Ok(LumenError::CarrierSuspended)));
+        assert_eq!(result, Err(Ok(OrbitHaulError::CarrierSuspended)));
     }
 
     // ── require_shipment (via get_shipment) ──────────────────────────────────
@@ -193,7 +193,7 @@ mod tests {
     fn require_shipment_returns_not_found_for_missing_id() {
         let (_env, client, _admin, _company, _carrier) = setup();
         let result = client.try_get_shipment(&9999);
-        assert!(matches!(result, Err(Ok(LumenError::ShipmentNotFound))));
+        assert!(matches!(result, Err(Ok(OrbitHaulError::ShipmentNotFound))));
     }
 
     // ── require_not_finalized ────────────────────────────────────────────────
@@ -224,6 +224,6 @@ mod tests {
         // Shipment is now finalized (auto-finalized on Delivered with no escrow) — further mutations should fail.
         let h5 = make_hash(&env, 12);
         let result = client.try_cancel_shipment(&company, &id, &h5);
-        assert_eq!(result, Err(Ok(LumenError::ShipmentFinalized)));
+        assert_eq!(result, Err(Ok(OrbitHaulError::ShipmentFinalized)));
     }
 }
